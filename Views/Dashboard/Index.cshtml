@@ -1,0 +1,172 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Overview of your motor shop performance</p>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <i class="fas fa-boxes-stacked"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@Model.TotalProducts</h3>
+            <p>Total Products</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@Model.InStockCount</h3>
+            <p>In Stock</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-yellow">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@Model.LowStockCount</h3>
+            <p>Low Stock</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-red">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@Model.OutOfStockCount</h3>
+            <p>Out of Stock</p>
+        </div>
+    </div>
+</div>
+
+<!-- Content Row -->
+<div class="dashboard-grid">
+    <!-- Recent Products -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-clock"></i> Recent Products</h2>
+            <a href="@Url.Action("Index", "Product")" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div class="card-body">
+            @if (Model.RecentProducts.Any())
+            {
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in Model.RecentProducts)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="product-cell">
+                                            @if (!string.IsNullOrEmpty(product.ImagePath))
+                                            {
+                                                <img src="@product.ImagePath" alt="@product.ProductName" class="product-thumb" />
+                                            }
+                                            else
+                                            {
+                                                <div class="product-thumb-placeholder">
+                                                    <i class="fas fa-image"></i>
+                                                </div>
+                                            }
+                                            <span>@product.ProductName</span>
+                                        </div>
+                                    </td>
+                                    <td>@product.Category</td>
+                                    <td>₱@product.Price.ToString("N2")</td>
+                                    <td>@product.StockQuantity</td>
+                                    <td>
+                                        <span class="status-badge status-@product.Status.ToLower().Replace(" ", "-")">
+                                            @product.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No products yet. <a href="@Url.Action("Create", "Product")">Add your first product</a></p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-history"></i> Recent Activity</h2>
+        </div>
+        <div class="card-body">
+            @if (Model.RecentLogs.Any())
+            {
+                <div class="activity-list">
+                    @foreach (var log in Model.RecentLogs)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                @switch (log.Action)
+                                {
+                                    case "Login":
+                                        <i class="fas fa-right-to-bracket" style="color: #10b981;"></i>
+                                        break;
+                                    case "Logout":
+                                        <i class="fas fa-right-from-bracket" style="color: #6b7280;"></i>
+                                        break;
+                                    case "Create Product":
+                                        <i class="fas fa-plus-circle" style="color: #3b82f6;"></i>
+                                        break;
+                                    case "Edit Product":
+                                        <i class="fas fa-pen" style="color: #f59e0b;"></i>
+                                        break;
+                                    case "Delete Product":
+                                        <i class="fas fa-trash" style="color: #ef4444;"></i>
+                                        break;
+                                    default:
+                                        <i class="fas fa-circle-info" style="color: #8b5cf6;"></i>
+                                        break;
+                                }
+                            </div>
+                            <div class="activity-content">
+                                <p>@log.Details</p>
+                                <span class="activity-time">
+                                    <i class="fas fa-clock"></i> @log.Timestamp.ToString("MMM dd, yyyy hh:mm tt")
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>No activity recorded yet</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

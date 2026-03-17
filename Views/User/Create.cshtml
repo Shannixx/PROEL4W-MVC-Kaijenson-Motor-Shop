@@ -1,0 +1,69 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.RegisterViewModel
+@{
+    ViewData["Title"] = "Add User";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Add User</h1>
+        <p class="page-subtitle">Create a new system user</p>
+    </div>
+    <a href="@Url.Action("Index")" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="card form-card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-user-plus"></i> User Information</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label asp-for="FirstName">First Name <span class="required">*</span></label>
+                        <input asp-for="FirstName" class="form-control" placeholder="Enter first name" />
+                        <span asp-validation-for="FirstName" class="field-validation"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="LastName">Last Name <span class="required">*</span></label>
+                        <input asp-for="LastName" class="form-control" placeholder="Enter last name" />
+                        <span asp-validation-for="LastName" class="field-validation"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Email">Email Address <span class="required">*</span></label>
+                    <input asp-for="Email" class="form-control" placeholder="Enter email address" />
+                    <span asp-validation-for="Email" class="field-validation"></span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label asp-for="Password">Password <span class="required">*</span></label>
+                        <input asp-for="Password" class="form-control" placeholder="Minimum 6 characters" />
+                        <span asp-validation-for="Password" class="field-validation"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ConfirmPassword">Confirm Password <span class="required">*</span></label>
+                        <input asp-for="ConfirmPassword" class="form-control" placeholder="Re-enter password" />
+                        <span asp-validation-for="ConfirmPassword" class="field-validation"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="@Url.Action("Index")" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

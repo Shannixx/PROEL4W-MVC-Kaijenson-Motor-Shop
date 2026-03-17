@@ -1,0 +1,79 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Product
+@{
+    ViewData["Title"] = "Product Details";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Product Details</h1>
+        <p class="page-subtitle">View product information</p>
+    </div>
+    <div class="header-actions">
+        <a href="@Url.Action("Edit", new { id = Model.ProductId })" class="btn btn-primary">
+            <i class="fas fa-pen"></i> Edit
+        </a>
+        <a href="@Url.Action("Index")" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="detail-layout">
+            <div class="detail-image">
+                @if (!string.IsNullOrEmpty(Model.ImagePath))
+                {
+                    <img src="@Model.ImagePath" alt="@Model.ProductName" />
+                }
+                else
+                {
+                    <div class="detail-image-placeholder">
+                        <i class="fas fa-image"></i>
+                        <p>No image available</p>
+                    </div>
+                }
+            </div>
+            <div class="detail-info">
+                <div class="detail-header">
+                    <h2>@Model.ProductName</h2>
+                    <span class="status-badge status-@Model.Status.ToLower().Replace(" ", "-")">
+                        @Model.Status
+                    </span>
+                </div>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Category</label>
+                        <span>@Model.Category</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Price</label>
+                        <span class="detail-price">₱@Model.Price.ToString("N2")</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Stock Quantity</label>
+                        <span>@Model.StockQuantity units</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Date Added</label>
+                        <span>@Model.CreatedAt.ToString("MMMM dd, yyyy")</span>
+                    </div>
+                    @if (Model.UpdatedAt != null)
+                    {
+                        <div class="detail-item">
+                            <label>Last Updated</label>
+                            <span>@Model.UpdatedAt?.ToString("MMMM dd, yyyy hh:mm tt")</span>
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div class="detail-description">
+                        <label>Description</label>
+                        <p>@Model.Description</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

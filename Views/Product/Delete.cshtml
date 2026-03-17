@@ -1,0 +1,54 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Product
+@{
+    ViewData["Title"] = "Delete Product";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Delete Product</h1>
+        <p class="page-subtitle">Are you sure you want to delete this product?</p>
+    </div>
+</div>
+
+<div class="card delete-card">
+    <div class="card-body">
+        <div class="delete-warning">
+            <div class="delete-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Confirm Deletion</h3>
+            <p>You are about to delete the following product. This action cannot be undone.</p>
+        </div>
+
+        <div class="delete-details">
+            <div class="detail-row">
+                <label>Product Name:</label>
+                <span>@Model.ProductName</span>
+            </div>
+            <div class="detail-row">
+                <label>Category:</label>
+                <span>@Model.Category</span>
+            </div>
+            <div class="detail-row">
+                <label>Price:</label>
+                <span>₱@Model.Price.ToString("N2")</span>
+            </div>
+            <div class="detail-row">
+                <label>Stock:</label>
+                <span>@Model.StockQuantity units</span>
+            </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="ProductId" />
+            <div class="form-actions">
+                <a href="@Url.Action("Index")" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Product
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

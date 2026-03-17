@@ -1,0 +1,123 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.User
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">Manage your account settings</p>
+    </div>
+</div>
+
+<div class="profile-layout">
+    <!-- Profile Card -->
+    <div class="card profile-sidebar-card">
+        <div class="card-body">
+            <div class="profile-avatar-large">
+                @if (!string.IsNullOrEmpty(Model.ProfileImage))
+                {
+                    <img src="@Model.ProfileImage" alt="@Model.FullName" />
+                }
+                else
+                {
+                    <i class="fas fa-user"></i>
+                }
+            </div>
+            <h3>@Model.FullName</h3>
+            <span class="role-badge role-@Model.Role.ToLower()">@Model.Role</span>
+            <p class="profile-email">@Model.Email</p>
+            <p class="profile-date">Member since @Model.CreatedAt.ToString("MMMM yyyy")</p>
+            <a href="@Url.Action("ChangePassword")" class="btn btn-outline btn-block">
+                <i class="fas fa-key"></i> Change Password
+            </a>
+        </div>
+    </div>
+
+    <!-- Edit Profile Form -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-user-edit"></i> Edit Profile</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="Profile" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                <input type="hidden" asp-for="UserId" />
+
+                <div class="form-section">
+                    <h3><i class="fas fa-camera"></i> Profile Photo</h3>
+                    <div class="profile-upload">
+                        <div class="profile-upload-preview">
+                            @if (!string.IsNullOrEmpty(Model.ProfileImage))
+                            {
+                                <img id="profilePreview" src="@Model.ProfileImage" alt="Profile" />
+                            }
+                            else
+                            {
+                                <img id="profilePreview" style="display:none;" />
+                                <div id="profilePlaceholder" class="profile-upload-placeholder">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="profile-upload-info">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('imageFile').click()">
+                                <i class="fas fa-upload"></i> Upload Photo
+                            </button>
+                            <p>JPG, PNG or GIF. Max 5MB.</p>
+                            <input type="file" name="imageFile" id="imageFile" accept="image/*" onchange="previewProfileImage(this)" style="display:none;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-info-circle"></i> Personal Information</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="FirstName">First Name <span class="required">*</span></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="field-validation"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="LastName">Last Name <span class="required">*</span></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="field-validation"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Email">Email Address <span class="required">*</span></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="field-validation"></span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function previewProfileImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var preview = document.getElementById('profilePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    var placeholder = document.getElementById('profilePlaceholder');
+                    if (placeholder) placeholder.style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

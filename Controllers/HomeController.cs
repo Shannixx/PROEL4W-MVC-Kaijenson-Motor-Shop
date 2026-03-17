@@ -1,32 +1,15 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using PROEL4W_MVC_Kaijenson_Motor_Shop.Models;
 
 namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
-        {
-            _logger = logger;
-        }
-
         public IActionResult Index()
         {
-            return View();
-        }
+            if (HttpContext.Session.GetInt32("UserId") != null)
+                return RedirectToAction("Index", "Dashboard");
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return RedirectToAction("Login", "Account");
         }
     }
 }

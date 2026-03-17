@@ -1,0 +1,136 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.User>
+@{
+    ViewData["Title"] = "User Management";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Manage system users and roles</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add User
+    </a>
+</div>
+
+<!-- Search -->
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="filter-bar">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search users..." class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-outline">
+                <i class="fas fa-search"></i> Search
+            </button>
+            @if (!string.IsNullOrEmpty(searchString))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-clear">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-users"></i> Users (@totalItems)</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Date Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar-sm">
+                                            @if (!string.IsNullOrEmpty(user.ProfileImage))
+                                            {
+                                                <img src="@user.ProfileImage" alt="@user.FullName" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-user"></i>
+                                            }
+                                        </div>
+                                        <span>@user.FullName</span>
+                                    </div>
+                                </td>
+                                <td>@user.Email</td>
+                                <td>
+                                    <span class="role-badge role-@user.Role.ToLower()">
+                                        @user.Role
+                                    </span>
+                                </td>
+                                <td>@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="@Url.Action("Edit", new { id = user.UserId })" class="action-btn action-edit" title="Edit">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+                                        <a href="@Url.Action("Delete", new { id = user.UserId })" class="action-btn action-delete" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages (@totalItems items)</span>
+                    <div class="pagination-links">
+                        @if (currentPage > 1)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage - 1, searchString })" class="pagination-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        }
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <a href="@Url.Action("Index", new { page = i, searchString })"
+                               class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                        @if (currentPage < totalPages)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage + 1, searchString })" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>No users found.</p>
+            </div>
+        }
+    </div>
+</div>

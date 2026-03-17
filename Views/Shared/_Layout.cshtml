@@ -1,49 +1,152 @@
-﻿<!DOCTYPE html>
+@{
+    var userName = Context.Session.GetString("UserName") ?? "User";
+    var userRole = Context.Session.GetString("UserRole") ?? "Staff";
+    var userImage = Context.Session.GetString("UserImage");
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PROEL4W_MVC_Kaijenson_Motor_Shop</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - Kaijenson Motor Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PROEL4W_MVC_Kaijenson_Motor_Shop.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PROEL4W_MVC_Kaijenson_Motor_Shop</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i class="fas fa-motorcycle"></i>
+            </div>
+            <div class="brand-text">
+                <h2>Kaijenson</h2>
+                <span>Motor Shop</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="@Url.Action("Index", "Dashboard")" class="nav-link @(currentController == "Dashboard" ? "active" : "")">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="@Url.Action("Index", "Product")" class="nav-link @(currentController == "Product" ? "active" : "")">
+                <i class="fas fa-boxes-stacked"></i>
+                <span>Inventory</span>
+            </a>
+            @if (userRole == "Admin")
+            {
+                <a href="@Url.Action("Index", "User")" class="nav-link @(currentController == "User" && currentAction != "Profile" && currentAction != "ChangePassword" ? "active" : "")">
+                    <i class="fas fa-users"></i>
+                    <span>Users</span>
+                </a>
+            }
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="@Url.Action("Profile", "User")" class="nav-link @(currentAction == "Profile" || currentAction == "ChangePassword" ? "active" : "")">
+                <i class="fas fa-gear"></i>
+                <span>Settings</span>
+            </a>
+            <a href="@Url.Action("Logout", "Account")" class="nav-link logout-link" onclick="return confirm('Are you sure you want to log out?');">
+                <i class="fas fa-right-from-bracket"></i>
+                <span>Log Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <form id="globalSearchForm" method="get" action="@Url.Action("Index", "Product")">
+                        <input type="text" name="searchString" placeholder="Search products, orders..." />
+                    </form>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+            <div class="header-right">
+                <div class="header-notifications">
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                </div>
+                <div class="header-profile">
+                    <div class="profile-avatar">
+                        @if (!string.IsNullOrEmpty(userImage))
+                        {
+                            <img src="@userImage" alt="Profile" />
+                        }
+                        else
+                        {
+                            <i class="fas fa-user"></i>
+                        }
+                    </div>
+                    <div class="profile-info">
+                        <span class="profile-role">@userRole</span>
+                        <span class="profile-name">@userName</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="page-content">
+            <!-- Notification Messages -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success" id="successAlert">
+                    <i class="fas fa-check-circle"></i>
+                    <span>@TempData["SuccessMessage"]</span>
+                    <button class="alert-close" onclick="this.parentElement.remove()">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-error" id="errorAlert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>@TempData["ErrorMessage"]</span>
+                    <button class="alert-close" onclick="this.parentElement.remove()">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+            }
+
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PROEL4W_MVC_Kaijenson_Motor_Shop - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function () {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function (alert) {
+                alert.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(function () { alert.remove(); }, 300);
+            });
+        }, 5000);
+    </script>
+    @RenderSection("Scripts", required: false)
 </body>
 </html>
