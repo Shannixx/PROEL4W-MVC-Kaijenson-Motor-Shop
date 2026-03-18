@@ -870,16 +870,19 @@ select.form-control {
 
 /* ---------- Validation ---------- */
 .validation-summary {
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.2);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-bottom: 18px;
-    font-size: 0.85rem;
-    color: var(--danger);
+    display: none;
 }
 
-.validation-summary:empty { display: none; }
+.validation-summary.validation-summary-errors {
+    display: block;
+    background: rgba(239,68,68,0.06);
+    border-left: 3px solid var(--danger);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.82rem;
+    color: var(--danger);
+}
 
 .validation-summary ul {
     list-style: none;

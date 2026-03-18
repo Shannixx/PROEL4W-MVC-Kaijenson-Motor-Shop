@@ -91,10 +91,10 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Username);
             if (existingUser != null)
             {
-                ModelState.AddModelError("Email", "This email is already registered.");
+                ModelState.AddModelError("Username", "This username is already taken.");
                 return View(model);
             }
 
@@ -102,7 +102,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             {
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                Email = model.Email,
+                Email = model.Username,
                 Password = HashingService.HashData(model.Password),
                 Role = "Staff",
                 CreatedAt = DateTime.Now

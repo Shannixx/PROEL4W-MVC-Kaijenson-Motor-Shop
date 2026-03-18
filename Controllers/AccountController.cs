@@ -35,11 +35,11 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             string hashedPassword = HashingService.HashData(model.Password);
 
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == model.Email && u.Password == hashedPassword);
+                .FirstOrDefaultAsync(u => u.Email == model.Username && u.Password == hashedPassword);
 
             if (user == null)
             {
-                ModelState.AddModelError("", "Invalid email or password.");
+                ModelState.AddModelError("", "Invalid username or password.");
                 return View(model);
             }
 
@@ -81,11 +81,11 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Check if email exists
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+            // Check if username exists
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Username);
             if (existingUser != null)
             {
-                ModelState.AddModelError("Email", "This email is already registered.");
+                ModelState.AddModelError("Username", "This username is already taken.");
                 return View(model);
             }
 
@@ -93,7 +93,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             {
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                Email = model.Email,
+                Email = model.Username,
                 Password = HashingService.HashData(model.Password),
                 Role = "Staff",
                 CreatedAt = DateTime.Now

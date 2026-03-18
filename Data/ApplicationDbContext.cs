@@ -26,7 +26,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Data
                 UserId = 1,
                 FirstName = "Admin",
                 LastName = "Kaijenson",
-                Email = "admin@kaijenson.com",
+                Email = "admin123",
                 Password = HashingService.HashData("admin123"),
                 Role = "Admin",
                 CreatedAt = new DateTime(2026, 1, 1)
