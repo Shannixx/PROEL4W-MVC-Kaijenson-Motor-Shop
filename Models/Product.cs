@@ -19,6 +19,19 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Models
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
         public string? Description { get; set; }
 
+        [StringLength(30)]
+        [Display(Name = "SKU")]
+        public string? SKU { get; set; }
+
+        [Range(0, 999999.99)]
+        [DataType(DataType.Currency)]
+        [Display(Name = "Cost (₱)")]
+        public decimal Cost { get; set; }
+
+        [Range(0, 999999)]
+        [Display(Name = "Min Stock Level")]
+        public int MinStock { get; set; } = 5;
+
         [Required(ErrorMessage = "Price is required")]
         [Range(0.01, 999999.99, ErrorMessage = "Price must be between 0.01 and 999,999.99")]
         [DataType(DataType.Currency)]
@@ -49,7 +62,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Models
         {
             if (StockQuantity <= 0)
                 Status = "Out of Stock";
-            else if (StockQuantity <= 10)
+            else if (StockQuantity <= MinStock)
                 Status = "Low Stock";
             else
                 Status = "In Stock";

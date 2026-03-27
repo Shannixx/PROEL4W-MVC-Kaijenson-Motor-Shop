@@ -1,0 +1,104 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Sale>
+@{
+    ViewData["Title"] = "Sales Reports";
+    var totalRevenue = (decimal)(ViewData["TotalRevenue"] ?? 0m);
+    var avgOrderValue = (decimal)(ViewData["AvgOrderValue"] ?? 0m);
+    var totalOrders = (int)(ViewData["TotalOrders"] ?? 0);
+    var completedOrders = (int)(ViewData["CompletedOrders"] ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Sales Reports</h1>
+        <p class="page-subtitle">Revenue analysis and sales trends</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Revenue</p><h3 class="stat-value">₱@totalRevenue.ToString("N0")</h3></div>
+        <div class="stat-icon stat-icon-green"><i class="fas fa-peso-sign"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Avg Order Value</p><h3 class="stat-value">₱@avgOrderValue.ToString("N0")</h3></div>
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-chart-line"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Orders</p><h3 class="stat-value">@totalOrders</h3></div>
+        <div class="stat-icon stat-icon-yellow"><i class="fas fa-clipboard-list"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Completed</p><h3 class="stat-value">@completedOrders</h3></div>
+        <div class="stat-icon stat-icon-purple"><i class="fas fa-check-circle"></i></div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-line"></i> Daily Sales (Last 30 Days)</h2></div>
+        <div class="card-body"><canvas id="dailySalesChart" height="280"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-trophy"></i> Top Selling Products</h2></div>
+        <div class="card-body"><canvas id="topProductsChart" height="280"></canvas></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h2><i class="fas fa-list"></i> All Sales</h2></div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in Model.Take(20))
+                        {
+                            <tr>
+                                <td>#@s.SaleId</td>
+                                <td>@s.Date.ToString("MMM dd, yyyy")</td>
+                                <td>@s.CustomerName</td>
+                                <td>@s.Items.Count items</td>
+                                <td><strong>₱@s.Total.ToString("N2")</strong></td>
+                                <td>@s.PaymentMethod</td>
+                                <td><span class="status-badge status-@s.Status.ToLower()">@s.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state"><i class="fas fa-receipt"></i><p>No sales data yet</p></div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const dailyData = @Html.Raw(ViewData["DailySalesJson"]?.ToString() ?? "[]");
+        if (dailyData.length > 0) {
+            new Chart(document.getElementById('dailySalesChart'), {
+                type: 'bar', data: {
+                    labels: dailyData.map(d => d.date),
+                    datasets: [{ label: 'Revenue', data: dailyData.map(d => d.total), backgroundColor: 'rgba(253,126,20,0.7)', borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        const topData = @Html.Raw(ViewData["TopProductsJson"]?.ToString() ?? "[]");
+        if (topData.length > 0) {
+            new Chart(document.getElementById('topProductsChart'), {
+                type: 'bar', data: {
+                    labels: topData.map(d => d.name),
+                    datasets: [{ label: 'Revenue', data: topData.map(d => d.revenue), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'], borderRadius: 6 }]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+    </script>
+}

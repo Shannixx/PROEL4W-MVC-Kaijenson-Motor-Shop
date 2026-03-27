@@ -1,0 +1,63 @@
+@model PROEL4W_MVC_Kaijenson_Motor_Shop.Models.StockTransaction
+@{
+    ViewData["Title"] = "Add Stock Transaction";
+    var products = ViewData["Products"] as List<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Product> ?? new List<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Product>();
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Add Stock Transaction</h1>
+        <p class="page-subtitle">Record a stock movement</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" asp-action="Create">
+            @Html.AntiForgeryToken()
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label asp-for="ProductName"></label>
+                    <select asp-for="ProductName" class="form-control">
+                        <option value="">Select Product</option>
+                        @foreach (var p in products)
+                        {
+                            <option value="@p.ProductName">@p.ProductName (Stock: @p.StockQuantity)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="ProductName" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Type"></label>
+                    <select asp-for="Type" class="form-control">
+                        <option value="stock-in">Stock In</option>
+                        <option value="stock-out">Stock Out</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label asp-for="Quantity"></label>
+                    <input asp-for="Quantity" type="number" min="1" class="form-control" />
+                    <span asp-validation-for="Quantity" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Date"></label>
+                    <input asp-for="Date" type="date" class="form-control" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label asp-for="Reference"></label>
+                    <input asp-for="Reference" class="form-control" placeholder="e.g. PO-2026-001 or S001" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="@Url.Action("Index")" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,110 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Product>
+@{
+    ViewData["Title"] = "Inventory Reports";
+    var totalProducts = (int)(ViewData["TotalProducts"] ?? 0);
+    var totalUnits = (int)(ViewData["TotalUnits"] ?? 0);
+    var stockValue = (decimal)(ViewData["StockValue"] ?? 0m);
+    var lowStockCount = (int)(ViewData["LowStockCount"] ?? 0);
+    var outOfStockCount = (int)(ViewData["OutOfStockCount"] ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventory Reports</h1>
+        <p class="page-subtitle">Stock analysis and inventory health</p>
+    </div>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-boxes-stacked"></i></div>
+        <div class="stat-info"><h3>@totalProducts</h3><p>Products</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green"><i class="fas fa-cubes"></i></div>
+        <div class="stat-info"><h3>@totalUnits</h3><p>Total Units</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-purple"><i class="fas fa-peso-sign"></i></div>
+        <div class="stat-info"><h3>₱@stockValue.ToString("N0")</h3><p>Stock Value</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-yellow"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info"><h3>@lowStockCount</h3><p>Low Stock</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-red"><i class="fas fa-times-circle"></i></div>
+        <div class="stat-info"><h3>@outOfStockCount</h3><p>Out of Stock</p></div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-area"></i> Stock Movement (Last 7 Days)</h2></div>
+        <div class="card-body"><canvas id="stockMovementChart" height="280"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-bar"></i> Stock by Category</h2></div>
+        <div class="card-body"><canvas id="stockCategoryChart" height="280"></canvas></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h2><i class="fas fa-list"></i> Full Inventory</h2></div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Product</th><th>Category</th><th>Price</th><th>Cost</th><th>Stock</th><th>Min Stock</th><th>Value</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>@p.ProductName</td>
+                            <td>@p.Category</td>
+                            <td>₱@p.Price.ToString("N2")</td>
+                            <td>₱@p.Cost.ToString("N2")</td>
+                            <td>@p.StockQuantity</td>
+                            <td>@p.MinStock</td>
+                            <td>₱@((p.Price * p.StockQuantity).ToString("N2"))</td>
+                            <td><span class="status-badge status-@p.Status.ToLower().Replace(" ", "-")">@p.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const movementData = @Html.Raw(ViewData["StockMovementJson"]?.ToString() ?? "[]");
+        if (movementData.length > 0) {
+            new Chart(document.getElementById('stockMovementChart'), {
+                type: 'line',
+                data: {
+                    labels: movementData.map(d => d.date),
+                    datasets: [
+                        { label: 'Stock In', data: movementData.map(d => d.stockIn), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 },
+                        { label: 'Stock Out', data: movementData.map(d => d.stockOut), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        const catData = @Html.Raw(ViewData["StockByCategoryJson"]?.ToString() ?? "[]");
+        if (catData.length > 0) {
+            new Chart(document.getElementById('stockCategoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: catData.map(d => d.category),
+                    datasets: [{ label: 'Units', data: catData.map(d => d.total), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'], borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+    </script>
+}

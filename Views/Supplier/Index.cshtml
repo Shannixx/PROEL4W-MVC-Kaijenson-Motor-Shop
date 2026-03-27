@@ -1,0 +1,87 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Supplier>
+@{
+    ViewData["Title"] = "Suppliers";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Suppliers</h1>
+        <p class="page-subtitle">Manage your supplier directory</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Supplier</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="filter-bar">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search suppliers..." class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i> Search</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-truck"></i> Suppliers (@totalItems)</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Categories</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model)
+                        {
+                            <tr>
+                                <td><strong>@s.Name</strong></td>
+                                <td>@(s.Contact ?? "—")</td>
+                                <td>@(s.Phone ?? "—")</td>
+                                <td>@(s.Email ?? "—")</td>
+                                <td>@(s.Categories ?? "—")</td>
+                                <td>
+                                    <span class="status-badge @(s.Status == "Active" ? "status-in-stock" : "status-out-of-stock")">
+                                        @s.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="@Url.Action("Edit", new { id = s.SupplierId })" class="action-btn action-edit" title="Edit"><i class="fas fa-pen"></i></a>
+                                        <form method="post" action="@Url.Action("Delete", new { id = s.SupplierId })" style="display:inline;" onsubmit="return confirm('Delete this supplier?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="action-btn action-delete" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-truck"></i>
+                <p>No suppliers found. <a href="@Url.Action("Create")">Add your first supplier</a></p>
+            </div>
+        }
+    </div>
+</div>

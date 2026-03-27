@@ -1,0 +1,187 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Sale>
+@{
+    ViewData["Title"] = "Orders";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+    var selectedStatus = ViewData["SelectedStatus"]?.ToString() ?? "";
+    var completedCount = (int)(ViewData["CompletedCount"] ?? 0);
+    var pendingCount = (int)(ViewData["PendingCount"] ?? 0);
+    var refundedCount = (int)(ViewData["RefundedCount"] ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Orders</h1>
+        <p class="page-subtitle">Manage your sales orders</p>
+    </div>
+</div>
+
+<!-- Status Filter Tabs -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body" style="padding: 12px 22px;">
+        <div class="status-tabs">
+            <a href="@Url.Action("Orders")" class="status-tab @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")">All (@totalItems)</a>
+            <a href="@Url.Action("Orders", new { status = "Completed" })" class="status-tab @(selectedStatus == "Completed" ? "active" : "")">Completed (@completedCount)</a>
+            <a href="@Url.Action("Orders", new { status = "Pending" })" class="status-tab @(selectedStatus == "Pending" ? "active" : "")">Pending (@pendingCount)</a>
+            <a href="@Url.Action("Orders", new { status = "Refunded" })" class="status-tab @(selectedStatus == "Refunded" ? "active" : "")">Refunded (@refundedCount)</a>
+        </div>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card">
+    <div class="card-body">
+        <form method="get" action="@Url.Action("Orders")" class="filter-bar">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search orders..." class="form-control" />
+            </div>
+            <input type="hidden" name="status" value="@selectedStatus" />
+            <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i> Search</button>
+        </form>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clipboard-list"></i> Orders</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in Model)
+                        {
+                            <tr>
+                                <td><strong>#@sale.SaleId</strong></td>
+                                <td>@sale.Date.ToString("MMM dd, yyyy")</td>
+                                <td>@sale.CustomerName</td>
+                                <td>@sale.Items.Count items</td>
+                                <td><strong>₱@sale.Total.ToString("N2")</strong></td>
+                                <td>@sale.PaymentMethod</td>
+                                <td>
+                                    <span class="status-badge status-@sale.Status.ToLower()">
+                                        @sale.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn action-view" title="View Details" onclick="viewOrder(@sale.SaleId)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        @if (sale.Status == "Pending")
+                                        {
+                                            <form method="post" action="@Url.Action("UpdateStatus", "Sale")" style="display:inline;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@sale.SaleId" />
+                                                <input type="hidden" name="status" value="Completed" />
+                                                <button type="submit" class="action-btn action-edit" title="Mark Complete">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        <form method="post" action="@Url.Action("Delete", "Sale")" style="display:inline;" onsubmit="return confirm('Delete this order?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@sale.SaleId" />
+                                            <button type="submit" class="action-btn action-delete" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages (@totalItems orders)</span>
+                    <div class="pagination-links">
+                        @if (currentPage > 1)
+                        {
+                            <a href="@Url.Action("Orders", new { page = currentPage - 1, searchString, status = selectedStatus })" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+                        }
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <a href="@Url.Action("Orders", new { page = i, searchString, status = selectedStatus })" class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                        @if (currentPage < totalPages)
+                        {
+                            <a href="@Url.Action("Orders", new { page = currentPage + 1, searchString, status = selectedStatus })" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No orders found</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="orderModal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="orderModalTitle">Order Details</h3>
+            <button class="modal-close" onclick="closeOrderModal()"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="orderModalBody"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewOrder(id) {
+            fetch('/Sale/Details/' + id)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('orderModalTitle').textContent = 'Order #' + data.saleId;
+                    let html = `
+                        <div class="order-detail-grid">
+                            <div class="order-detail-item"><span class="label">Date</span><span>${data.date}</span></div>
+                            <div class="order-detail-item"><span class="label">Customer</span><span>${data.customerName}</span></div>
+                            <div class="order-detail-item"><span class="label">Payment</span><span>${data.paymentMethod}</span></div>
+                            <div class="order-detail-item"><span class="label">Status</span><span class="status-badge status-${data.status.toLowerCase()}">${data.status}</span></div>
+                        </div>
+                        <h4 style="margin: 16px 0 8px;">Items</h4>
+                        <table class="data-table">
+                            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+                            <tbody>`;
+                    data.items.forEach(item => {
+                        html += `<tr><td>${item.productName}</td><td>${item.quantity}</td><td>₱${item.price}</td><td>₱${item.subtotal}</td></tr>`;
+                    });
+                    html += `</tbody></table>
+                        <div class="order-total" style="margin-top:16px; text-align:right; font-size:1.2rem; font-weight:700;">Total: ₱${data.total}</div>`;
+                    document.getElementById('orderModalBody').innerHTML = html;
+                    document.getElementById('orderModal').style.display = 'flex';
+                });
+        }
+        function closeOrderModal() { document.getElementById('orderModal').style.display = 'none'; }
+        document.getElementById('orderModal').addEventListener('click', function(e) { if (e.target === this) closeOrderModal(); });
+    </script>
+}

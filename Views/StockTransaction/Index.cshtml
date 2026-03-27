@@ -1,0 +1,124 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.StockTransaction>
+@{
+    ViewData["Title"] = "Stock Transactions";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+    var selectedType = ViewData["SelectedType"]?.ToString() ?? "";
+    var stockInCount = (int)(ViewData["StockInCount"] ?? 0);
+    var stockOutCount = (int)(ViewData["StockOutCount"] ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Stock Transactions</h1>
+        <p class="page-subtitle">Track all stock movements</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</a>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-arrow-right-arrow-left"></i></div>
+        <div class="stat-info"><h3>@totalItems</h3><p>Total Transactions</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green"><i class="fas fa-arrow-down"></i></div>
+        <div class="stat-info"><h3>@stockInCount</h3><p>Stock In</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-red"><i class="fas fa-arrow-up"></i></div>
+        <div class="stat-info"><h3>@stockOutCount</h3><p>Stock Out</p></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="filter-bar">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search by product or reference..." class="form-control" />
+            </div>
+            <div class="filter-select">
+                <select name="type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="stock-in" selected="@(selectedType == "stock-in")">Stock In</option>
+                    <option value="stock-out" selected="@(selectedType == "stock-out")">Stock Out</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Filter</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-arrow-right-arrow-left"></i> Transaction Log</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Product</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Reference</th>
+                            <th>By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Model)
+                        {
+                            <tr>
+                                <td>@t.Date.ToString("MMM dd, yyyy")</td>
+                                <td>@t.Time</td>
+                                <td>@t.ProductName</td>
+                                <td>
+                                    <span class="status-badge @(t.Type == "stock-in" ? "status-in-stock" : "status-out-of-stock")">
+                                        @(t.Type == "stock-in" ? "Stock In" : "Stock Out")
+                                    </span>
+                                </td>
+                                <td><strong>@t.Quantity</strong></td>
+                                <td>@(t.Reference ?? "—")</td>
+                                <td>@(t.PerformedBy ?? "—")</td>
+                                <td>
+                                    <form method="post" action="@Url.Action("Delete", new { id = t.StockTransactionId })" style="display:inline;" onsubmit="return confirm('Delete this transaction?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="action-btn action-delete" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages</span>
+                    <div class="pagination-links">
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <a href="@Url.Action("Index", new { page = i, searchString, type = selectedType })" class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-arrow-right-arrow-left"></i>
+                <p>No transactions found</p>
+            </div>
+        }
+    </div>
+</div>

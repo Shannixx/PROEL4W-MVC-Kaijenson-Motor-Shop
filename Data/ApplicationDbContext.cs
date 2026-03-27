@@ -14,6 +14,11 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<Sale> Sales { get; set; }
+        public DbSet<SaleItem> SaleItems { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<StockTransaction> StockTransactions { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

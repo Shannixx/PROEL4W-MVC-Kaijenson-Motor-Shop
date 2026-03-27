@@ -1,0 +1,105 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.Customer>
+@{
+    ViewData["Title"] = "Customers";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Customers</h1>
+        <p class="page-subtitle">Manage your customer database</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Customer</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="filter-bar">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search customers..." class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i> Search</button>
+            @if (!string.IsNullOrEmpty(searchString))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-clear"><i class="fas fa-times"></i> Clear</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-users"></i> Customers (@totalItems)</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Total Purchases</th>
+                            <th>Last Visit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar-sm">
+                                            @(c.Name.Split(' ').Length > 1 ? $"{c.Name.Split(' ')[0][0]}{c.Name.Split(' ')[1][0]}" : c.Name.Substring(0, Math.Min(2, c.Name.Length)).ToUpper())
+                                        </div>
+                                        <span>@c.Name</span>
+                                    </div>
+                                </td>
+                                <td>@(c.Phone ?? "—")</td>
+                                <td>@(c.Email ?? "—")</td>
+                                <td><strong>₱@c.TotalPurchases.ToString("N2")</strong></td>
+                                <td>@(c.LastVisit?.ToString("MMM dd, yyyy") ?? "—")</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="@Url.Action("Edit", new { id = c.CustomerId })" class="action-btn action-edit" title="Edit"><i class="fas fa-pen"></i></a>
+                                        <form method="post" action="@Url.Action("Delete", new { id = c.CustomerId })" style="display:inline;" onsubmit="return confirm('Delete this customer?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="action-btn action-delete" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages</span>
+                    <div class="pagination-links">
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <a href="@Url.Action("Index", new { page = i, searchString })" class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>No customers found. <a href="@Url.Action("Create")">Add your first customer</a></p>
+            </div>
+        }
+    </div>
+</div>

@@ -6,53 +6,174 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Dashboard</h1>
-        <p class="page-subtitle">Overview of your motor shop performance</p>
+        <p class="page-subtitle">Welcome back! Here's your shop overview.</p>
     </div>
 </div>
 
 <!-- Stats Cards -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-icon stat-icon-blue">
-            <i class="fas fa-boxes-stacked"></i>
+        <div class="stat-content">
+            <p class="stat-label">Today's Sales</p>
+            <h3 class="stat-value">₱@Model.TodaysSales.ToString("N0")</h3>
+            <div class="stat-change positive">
+                <i class="fas fa-trending-up"></i>
+                <span>vs last month</span>
+            </div>
         </div>
-        <div class="stat-info">
-            <h3>@Model.TotalProducts</h3>
-            <p>Total Products</p>
-        </div>
-    </div>
-    <div class="stat-card">
         <div class="stat-icon stat-icon-green">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stat-info">
-            <h3>@Model.InStockCount</h3>
-            <p>In Stock</p>
+            <i class="fas fa-peso-sign"></i>
         </div>
     </div>
     <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Total Orders</p>
+            <h3 class="stat-value">@Model.TotalOrders</h3>
+            <div class="stat-change positive">
+                <span>vs last month</span>
+            </div>
+        </div>
+        <div class="stat-icon stat-icon-blue">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Total Units</p>
+            <h3 class="stat-value">@Model.TotalUnits</h3>
+            <div class="stat-change neutral">
+                <span>@Model.LowStockCount alerts vs last month</span>
+            </div>
+        </div>
         <div class="stat-icon stat-icon-yellow">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="stat-info">
-            <h3>@Model.LowStockCount</h3>
-            <p>Low Stock</p>
+            <i class="fas fa-cubes"></i>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon stat-icon-red">
-            <i class="fas fa-times-circle"></i>
+        <div class="stat-content">
+            <p class="stat-label">Stock Value</p>
+            <h3 class="stat-value">₱@Model.StockValue.ToString("N0")</h3>
+            <div class="stat-change neutral">
+                <span>Retail vs last month</span>
+            </div>
         </div>
-        <div class="stat-info">
-            <h3>@Model.OutOfStockCount</h3>
-            <p>Out of Stock</p>
+        <div class="stat-icon stat-icon-purple">
+            <i class="fas fa-warehouse"></i>
         </div>
     </div>
 </div>
 
-<!-- Content Row -->
+<!-- Charts Row -->
 <div class="dashboard-grid">
-    <!-- Recent Products -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-area"></i> Stock Movement (In vs Out)</h2>
+            <span class="text-muted">Last 7 days</span>
+        </div>
+        <div class="card-body">
+            <canvas id="stockMovementChart" height="260"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-bar"></i> Stock Level by Category</h2>
+        </div>
+        <div class="card-body">
+            <canvas id="stockCategoryChart" height="260"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock & Recent Transactions Row -->
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h2>
+        </div>
+        <div class="card-body">
+            @if (Model.LowStockAlerts.Any())
+            {
+                <div class="low-stock-list">
+                    @foreach (var item in Model.LowStockAlerts)
+                    {
+                        <div class="low-stock-item">
+                            <div class="low-stock-info">
+                                <span class="low-stock-name">@item.ProductName</span>
+                                <span class="low-stock-detail">Stock: @item.StockQuantity / Min: @item.MinStock</span>
+                            </div>
+                            <div class="low-stock-progress">
+                                <div class="progress-bar">
+                                    @{
+                                        var pct = item.MinStock > 0 ? Math.Min(100, (int)((double)item.StockQuantity / item.MinStock * 100)) : 0;
+                                        var color = pct < 30 ? "var(--danger)" : pct < 60 ? "var(--warning)" : "var(--success)";
+                                    }
+                                    <div class="progress-fill" style="width: @(pct)%; background: @color;"></div>
+                                </div>
+                                <span class="low-stock-need">Need: @(Math.Max(0, item.MinStock - item.StockQuantity)) units</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state-sm">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <p>All stock levels are healthy</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-receipt"></i> Recent Transactions</h2>
+            <a href="@Url.Action("Orders", "Sale")" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div class="card-body">
+            @if (Model.RecentTransactions.Any())
+            {
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in Model.RecentTransactions)
+                            {
+                                <tr>
+                                    <td>#@sale.SaleId</td>
+                                    <td>@sale.CustomerName</td>
+                                    <td>₱@sale.Total.ToString("N2")</td>
+                                    <td>
+                                        <span class="status-badge status-@sale.Status.ToLower()">
+                                            @sale.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state-sm">
+                    <i class="fas fa-inbox"></i>
+                    <p>No transactions yet</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Recent Products & Activity Row -->
+<div class="dashboard-grid">
     <div class="card">
         <div class="card-header">
             <h2><i class="fas fa-clock"></i> Recent Products</h2>
@@ -115,7 +236,6 @@
         </div>
     </div>
 
-    <!-- Recent Activity -->
     <div class="card">
         <div class="card-header">
             <h2><i class="fas fa-history"></i> Recent Activity</h2>
@@ -145,6 +265,9 @@
                                     case "Delete Product":
                                         <i class="fas fa-trash" style="color: #ef4444;"></i>
                                         break;
+                                    case "New Sale":
+                                        <i class="fas fa-shopping-cart" style="color: #10b981;"></i>
+                                        break;
                                     default:
                                         <i class="fas fa-circle-info" style="color: #8b5cf6;"></i>
                                         break;
@@ -170,3 +293,64 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Stock Movement Chart
+        const movementData = @Html.Raw(Model.StockMovementJson ?? "[]");
+        if (movementData.length > 0) {
+            new Chart(document.getElementById('stockMovementChart'), {
+                type: 'line',
+                data: {
+                    labels: movementData.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Stock In',
+                            data: movementData.map(d => d.stockIn),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Stock Out',
+                            data: movementData.map(d => d.stockOut),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Stock by Category Chart
+        const categoryData = @Html.Raw(Model.StockByCategoryJson ?? "[]");
+        if (categoryData.length > 0) {
+            new Chart(document.getElementById('stockCategoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: categoryData.map(d => d.category),
+                    datasets: [{
+                        label: 'Units',
+                        data: categoryData.map(d => d.total),
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    </script>
+}

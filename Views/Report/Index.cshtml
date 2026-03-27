@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "Reports";
+    var totalSales = (decimal)(ViewData["TotalSales"] ?? 0m);
+    var totalOrders = (int)(ViewData["TotalOrders"] ?? 0);
+    var totalCustomers = (int)(ViewData["TotalCustomers"] ?? 0);
+    var totalProducts = (int)(ViewData["TotalProducts"] ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Reports</h1>
+        <p class="page-subtitle">Business analytics and performance overview</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Revenue</p><h3 class="stat-value">₱@totalSales.ToString("N0")</h3></div>
+        <div class="stat-icon stat-icon-green"><i class="fas fa-peso-sign"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Orders</p><h3 class="stat-value">@totalOrders</h3></div>
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-shopping-cart"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Customers</p><h3 class="stat-value">@totalCustomers</h3></div>
+        <div class="stat-icon stat-icon-yellow"><i class="fas fa-users"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content"><p class="stat-label">Total Products</p><h3 class="stat-value">@totalProducts</h3></div>
+        <div class="stat-icon stat-icon-purple"><i class="fas fa-boxes-stacked"></i></div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-line"></i> Sales Overview</h2></div>
+        <div class="card-body"><canvas id="monthlySalesChart" height="280"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-pie"></i> Sales by Category</h2></div>
+        <div class="card-body"><canvas id="categorySalesChart" height="280"></canvas></div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <a href="@Url.Action("Sales", "Report")" class="stat-card" style="text-decoration:none;">
+        <div class="stat-icon stat-icon-green"><i class="fas fa-receipt"></i></div>
+        <div class="stat-info"><h3>Sales Reports</h3><p>Revenue analysis & trends</p></div>
+    </a>
+    <a href="@Url.Action("Inventory", "Report")" class="stat-card" style="text-decoration:none;">
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-chart-bar"></i></div>
+        <div class="stat-info"><h3>Inventory Reports</h3><p>Stock analysis & alerts</p></div>
+    </a>
+    <a href="@Url.Action("Restocking", "Report")" class="stat-card" style="text-decoration:none;">
+        <div class="stat-icon stat-icon-yellow"><i class="fas fa-box-open"></i></div>
+        <div class="stat-info"><h3>Restocking</h3><p>Items needing reorder</p></div>
+    </a>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const monthlyData = @Html.Raw(ViewData["MonthlySalesJson"]?.ToString() ?? "[]");
+        if (monthlyData.length > 0) {
+            new Chart(document.getElementById('monthlySalesChart'), {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.month),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: monthlyData.map(d => d.sales),
+                        borderColor: '#FD7E14',
+                        backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                        fill: true, tension: 0.4, borderWidth: 2
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        const catData = @Html.Raw(ViewData["CategorySalesJson"]?.ToString() ?? "[]");
+        if (catData.length > 0) {
+            new Chart(document.getElementById('categorySalesChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: catData.map(d => d.name),
+                    datasets: [{
+                        data: catData.map(d => d.value),
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+    </script>
+}
