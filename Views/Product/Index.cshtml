@@ -14,14 +14,21 @@
         <h1 class="page-title">Inventory</h1>
         <p class="page-subtitle">Manage your products and stock levels</p>
     </div>
-    <a href="@Url.Action("Create")" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Add Product
-    </a>
+    <div class="header-actions">
+        <button class="btn btn-export" onclick="exportInventory()"><i class="fas fa-file-excel"></i> Export</button>
+        <div class="view-toggle">
+            <button class="view-toggle-btn active" id="listToggle" onclick="switchView('list')"><i class="fas fa-list"></i></button>
+            <button class="view-toggle-btn" id="gridToggle" onclick="switchView('grid')"><i class="fas fa-th"></i></button>
+        </div>
+        <a href="@Url.Action("Create")" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Product
+        </a>
+    </div>
 </div>
 
 <!-- Filters -->
-<div class="card">
-    <div class="card-body">
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-body" style="padding: 14px 22px;">
         <form method="get" class="filter-bar">
             <div class="filter-search">
                 <i class="fas fa-search"></i>
@@ -32,7 +39,14 @@
                     <option value="">All Categories</option>
                     @foreach (var cat in categories)
                     {
-                        <option value="@cat" selected="@(cat == selectedCategory)">@cat</option>
+                        @if (cat == selectedCategory)
+                        {
+                            <option value="@cat" selected>@cat</option>
+                        }
+                        else
+                        {
+                            <option value="@cat">@cat</option>
+                        }
                     }
                 </select>
             </div>
@@ -49,8 +63,26 @@
     </div>
 </div>
 
-<!-- Product Table -->
-<div class="card">
+<!-- Bulk Action Bar -->
+<div class="bulk-action-bar" id="bulkActionBar">
+    <div class="bulk-info">
+        <i class="fas fa-check-square"></i>
+        <span><span class="count" id="selectedCount">0</span> product(s) selected</span>
+    </div>
+    <div class="bulk-actions">
+        <button class="btn-bulk" onclick="BulkSelect.deselectAll()">Deselect All</button>
+        <form method="post" action="@Url.Action("BulkDelete", "Product")" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ids" id="bulkDeleteIds" />
+            <button type="submit" class="btn-bulk btn-bulk-delete">
+                <i class="fas fa-trash"></i> Delete Selected (<span id="deleteSelectedCount">0</span>)
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- List View -->
+<div class="card" id="listView">
     <div class="card-header">
         <h2><i class="fas fa-list"></i> Products (@totalItems)</h2>
     </div>
@@ -61,6 +93,9 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="header-checkbox" onchange="BulkSelect.toggleAll(this, '.row-checkbox')" />
+                            </th>
                             <th>Product</th>
                             <th>Category</th>
                             <th>Price</th>
@@ -74,6 +109,10 @@
                         @foreach (var item in Model)
                         {
                             <tr>
+                                <td>
+                                    <input type="checkbox" class="row-checkbox" data-id="@item.ProductId"
+                                           onchange="BulkSelect.toggle('@item.ProductId', this)" />
+                                </td>
                                 <td>
                                     <div class="product-cell">
                                         @if (!string.IsNullOrEmpty(item.ImagePath))
@@ -97,7 +136,7 @@
                                         @item.Status
                                     </span>
                                 </td>
-                                <td>@item.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td style="color: var(--text-secondary);">@item.CreatedAt.ToString("MMM dd, yyyy")</td>
                                 <td>
                                     <div class="action-buttons">
                                         <a href="@Url.Action("Details", new { id = item.ProductId })" class="action-btn action-view" title="View">
@@ -116,37 +155,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <!-- Pagination -->
-            @if (totalPages > 1)
-            {
-                <div class="pagination">
-                    <span class="pagination-info">
-                        Page @currentPage of @totalPages (@totalItems items)
-                    </span>
-                    <div class="pagination-links">
-                        @if (currentPage > 1)
-                        {
-                            <a href="@Url.Action("Index", new { page = currentPage - 1, searchString, category = selectedCategory })" class="pagination-btn">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        }
-                        @for (int i = 1; i <= totalPages; i++)
-                        {
-                            <a href="@Url.Action("Index", new { page = i, searchString, category = selectedCategory })"
-                               class="pagination-btn @(i == currentPage ? "active" : "")">
-                                @i
-                            </a>
-                        }
-                        @if (currentPage < totalPages)
-                        {
-                            <a href="@Url.Action("Index", new { page = currentPage + 1, searchString, category = selectedCategory })" class="pagination-btn">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
         }
         else
         {
@@ -157,3 +165,130 @@
         }
     </div>
 </div>
+
+<!-- Grid View -->
+<div id="gridView" style="display:none;">
+    @if (Model.Any())
+    {
+        <div class="product-grid">
+            @foreach (var item in Model)
+            {
+                <div class="product-grid-card">
+                    <div class="product-grid-image">
+                        <input type="checkbox" class="grid-checkbox row-checkbox" data-id="@item.ProductId"
+                               onchange="BulkSelect.toggle('@item.ProductId', this)" />
+                        @if (!string.IsNullOrEmpty(item.ImagePath))
+                        {
+                            <img src="@item.ImagePath" alt="@item.ProductName" />
+                        }
+                        else
+                        {
+                            <i class="fas fa-image grid-placeholder"></i>
+                        }
+                    </div>
+                    <div class="product-grid-body">
+                        <span class="product-grid-category">@item.Category</span>
+                        <div class="product-grid-name" title="@item.ProductName">@item.ProductName</div>
+                        <div class="product-grid-footer">
+                            <span class="product-grid-price">₱@item.Price.ToString("N2")</span>
+                            <span class="product-grid-stock">@item.StockQuantity in stock</span>
+                        </div>
+                        <div class="product-grid-actions">
+                            <a href="@Url.Action("Details", new { id = item.ProductId })" class="action-btn action-view" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="@Url.Action("Edit", new { id = item.ProductId })" class="action-btn action-edit" title="Edit">
+                                <i class="fas fa-pen"></i>
+                            </a>
+                            <a href="@Url.Action("Delete", new { id = item.ProductId })" class="action-btn action-delete" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state" style="background: var(--card-bg); border-radius: var(--radius-lg); padding: 40px;">
+            <i class="fas fa-inbox"></i>
+            <p>No products found. <a href="@Url.Action("Create")">Add your first product</a></p>
+        </div>
+    }
+</div>
+
+<!-- Pagination -->
+@if (totalPages > 1)
+{
+    <div class="card" style="margin-top: 16px;">
+        <div class="card-body">
+            <div class="pagination" style="border-top:none; margin-top:0; padding-top:0;">
+                <span class="pagination-info">Page @currentPage of @totalPages (@totalItems items)</span>
+                <div class="pagination-links">
+                    @if (currentPage > 1)
+                    {
+                        <a href="@Url.Action("Index", new { page = currentPage - 1, searchString, category = selectedCategory })" class="pagination-btn">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    }
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <a href="@Url.Action("Index", new { page = i, searchString, category = selectedCategory })"
+                           class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                    }
+                    @if (currentPage < totalPages)
+                    {
+                        <a href="@Url.Action("Index", new { page = currentPage + 1, searchString, category = selectedCategory })" class="pagination-btn">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function switchView(mode) {
+            if (mode === 'grid') {
+                document.getElementById('listView').style.display = 'none';
+                document.getElementById('gridView').style.display = 'block';
+                document.getElementById('listToggle').classList.remove('active');
+                document.getElementById('gridToggle').classList.add('active');
+            } else {
+                document.getElementById('listView').style.display = 'block';
+                document.getElementById('gridView').style.display = 'none';
+                document.getElementById('listToggle').classList.add('active');
+                document.getElementById('gridToggle').classList.remove('active');
+            }
+        }
+
+        function exportInventory() {
+            var data = [];
+            @foreach (var item in Model)
+            {
+                <text>
+                data.push({
+                    'Product': '@Html.Raw(item.ProductName.Replace("'", "\\'"))',
+                    'Category': '@item.Category',
+                    'Price': @item.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                    'Stock': @item.StockQuantity,
+                    'Status': '@item.Status',
+                    'Date Added': '@item.CreatedAt.ToString("yyyy-MM-dd")'
+                });
+                </text>
+            }
+            exportToExcel(data, 'Inventory', 'Inventory-' + todayISO() + '.xlsx', [25, 15, 12, 10, 14, 14]);
+        }
+
+        function confirmBulkDelete() {
+            var ids = BulkSelect.getIds();
+            if (ids.length === 0) return false;
+            if (!confirm('Delete ' + ids.length + ' product(s)?')) return false;
+            document.getElementById('bulkDeleteIds').value = ids.join(',');
+            return true;
+        }
+    </script>
+}

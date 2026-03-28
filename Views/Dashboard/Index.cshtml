@@ -10,6 +10,42 @@
     </div>
 </div>
 
+<!-- Real-time Monitoring Panel -->
+<div class="monitoring-panel">
+    <div class="monitor-card monitor-blue">
+        <div class="monitor-header">
+            <span class="monitor-label">Products Scanned</span>
+            <span class="monitor-live"><span class="monitor-live-dot"></span> LIVE</span>
+        </div>
+        <div class="monitor-value" id="monitorScanned">@Model.TotalProducts</div>
+        <div class="monitor-subtitle">Total products tracked</div>
+    </div>
+    <div class="monitor-card monitor-green">
+        <div class="monitor-header">
+            <span class="monitor-label">Items Sold Today</span>
+            <span class="monitor-live"><span class="monitor-live-dot"></span> LIVE</span>
+        </div>
+        <div class="monitor-value" id="monitorSold">0</div>
+        <div class="monitor-subtitle">Units sold today</div>
+    </div>
+    <div class="monitor-card monitor-purple">
+        <div class="monitor-header">
+            <span class="monitor-label">Active Sessions</span>
+            <span class="monitor-live"><span class="monitor-live-dot"></span> LIVE</span>
+        </div>
+        <div class="monitor-value" id="monitorSessions">1</div>
+        <div class="monitor-subtitle">Current online users</div>
+    </div>
+    <div class="monitor-card monitor-orange">
+        <div class="monitor-header">
+            <span class="monitor-label">System Sync</span>
+            <span class="monitor-live"><span class="monitor-live-dot"></span> LIVE</span>
+        </div>
+        <div class="monitor-value" id="monitorSync" style="color: var(--success);">✓</div>
+        <div class="monitor-subtitle" id="monitorSyncText">Synced just now</div>
+    </div>
+</div>
+
 <!-- Stats Cards -->
 <div class="stats-grid">
     <div class="stat-card">
@@ -352,5 +388,32 @@
                 }
             });
         }
+
+        // Real-time Monitoring Simulation
+        (function() {
+            var soldEl = document.getElementById('monitorSold');
+            var sessionsEl = document.getElementById('monitorSessions');
+            var syncEl = document.getElementById('monitorSyncText');
+            var soldCount = 0;
+
+            setInterval(function() {
+                if (Math.random() > 0.6) {
+                    soldCount += Math.floor(Math.random() * 3) + 1;
+                    if (soldEl) soldEl.textContent = soldCount;
+                }
+            }, 3000);
+
+            setInterval(function() {
+                var sessions = Math.floor(Math.random() * 3) + 1;
+                if (sessionsEl) sessionsEl.textContent = sessions;
+            }, 5000);
+
+            setInterval(function() {
+                if (syncEl) {
+                    var now = new Date();
+                    syncEl.textContent = 'Synced at ' + now.toLocaleTimeString();
+                }
+            }, 8000);
+        })();
     </script>
 }

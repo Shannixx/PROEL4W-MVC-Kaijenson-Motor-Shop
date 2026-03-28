@@ -5,6 +5,7 @@
     var totalPages = (int)(ViewData["TotalPages"] ?? 1);
     var totalItems = (int)(ViewData["TotalItems"] ?? 0);
     var searchString = ViewData["SearchString"]?.ToString() ?? "";
+    var activeCount = Model.Count(s => s.Status == "Active");
 }
 
 <div class="page-header">
@@ -12,17 +13,66 @@
         <h1 class="page-title">Suppliers</h1>
         <p class="page-subtitle">Manage your supplier directory</p>
     </div>
-    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Supplier</a>
+    <div class="header-actions">
+        <button class="btn btn-export" onclick="exportSuppliers()"><i class="fas fa-file-excel"></i> Export</button>
+        <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Supplier</a>
+    </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
+<!-- Stats -->
+<div class="stats-grid-3">
+    <div class="stat-card-icon">
+        <div class="sci-icon blue"><i class="fas fa-truck"></i></div>
+        <div>
+            <div class="sci-label">Total Suppliers</div>
+            <div class="sci-value">@totalItems</div>
+        </div>
+    </div>
+    <div class="stat-card-icon">
+        <div class="sci-icon green"><i class="fas fa-circle-check"></i></div>
+        <div>
+            <div class="sci-label">Active Suppliers</div>
+            <div class="sci-value green-text">@activeCount</div>
+        </div>
+    </div>
+    <div class="stat-card-icon">
+        <div class="sci-icon purple"><i class="fas fa-tags"></i></div>
+        <div>
+            <div class="sci-label">Categories</div>
+            <div class="sci-value">@Model.Where(s => s.Categories != null).SelectMany(s => s.Categories!.Split(',')).Select(c => c.Trim()).Where(c => c.Length > 0).Distinct().Count()</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-body" style="padding: 14px 22px;">
         <form method="get" class="filter-bar">
             <div class="filter-search">
                 <i class="fas fa-search"></i>
                 <input type="text" name="searchString" value="@searchString" placeholder="Search suppliers..." class="form-control" />
             </div>
             <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i> Search</button>
+            @if (!string.IsNullOrEmpty(searchString))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-clear"><i class="fas fa-times"></i> Clear</a>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Action Bar -->
+<div class="bulk-action-bar" id="bulkActionBar">
+    <div class="bulk-info">
+        <i class="fas fa-check-square"></i>
+        <span><span class="count" id="selectedCount">0</span> supplier(s) selected</span>
+    </div>
+    <div class="bulk-actions">
+        <button class="btn-bulk" onclick="BulkSelect.deselectAll()">Deselect All</button>
+        <form method="post" action="@Url.Action("BulkDelete", "Supplier")" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ids" id="bulkDeleteIds" />
+            <button type="submit" class="btn-bulk btn-bulk-delete"><i class="fas fa-trash"></i> Delete (<span id="deleteSelectedCount">0</span>)</button>
         </form>
     </div>
 </div>
@@ -38,6 +88,9 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="header-checkbox" onchange="BulkSelect.toggleAll(this, '.row-checkbox')" />
+                            </th>
                             <th>Supplier</th>
                             <th>Contact Person</th>
                             <th>Phone</th>
@@ -51,6 +104,10 @@
                         @foreach (var s in Model)
                         {
                             <tr>
+                                <td>
+                                    <input type="checkbox" class="row-checkbox" data-id="@s.SupplierId"
+                                           onchange="BulkSelect.toggle('@s.SupplierId', this)" />
+                                </td>
                                 <td><strong>@s.Name</strong></td>
                                 <td>@(s.Contact ?? "—")</td>
                                 <td>@(s.Phone ?? "—")</td>
@@ -75,6 +132,27 @@
                     </tbody>
                 </table>
             </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages</span>
+                    <div class="pagination-links">
+                        @if (currentPage > 1)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage - 1, searchString })" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+                        }
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <a href="@Url.Action("Index", new { page = i, searchString })" class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                        @if (currentPage < totalPages)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage + 1, searchString })" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+                        }
+                    </div>
+                </div>
+            }
         }
         else
         {
@@ -85,3 +163,33 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function exportSuppliers() {
+            var data = [];
+            @foreach (var s in Model)
+            {
+                <text>
+                data.push({
+                    'Supplier': '@Html.Raw(s.Name.Replace("'", "\\'"))',
+                    'Contact': '@(s.Contact ?? "")',
+                    'Phone': '@(s.Phone ?? "")',
+                    'Email': '@(s.Email ?? "")',
+                    'Categories': '@(s.Categories ?? "")',
+                    'Status': '@s.Status'
+                });
+                </text>
+            }
+            exportToExcel(data, 'Suppliers', 'Suppliers-' + todayISO() + '.xlsx', [25, 20, 15, 25, 20, 10]);
+        }
+
+        function confirmBulkDelete() {
+            var ids = BulkSelect.getIds();
+            if (ids.length === 0) return false;
+            if (!confirm('Delete ' + ids.length + ' supplier(s)?')) return false;
+            document.getElementById('bulkDeleteIds').value = ids.join(',');
+            return true;
+        }
+    </script>
+}

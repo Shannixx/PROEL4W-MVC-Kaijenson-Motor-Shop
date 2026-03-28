@@ -119,5 +119,30 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
+
+        // POST: /Supplier/BulkDelete
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkDelete(string ids)
+        {
+            if (string.IsNullOrEmpty(ids))
+                return RedirectToAction(nameof(Index));
+
+            try
+            {
+                var idList = ids.Split(',').Select(int.Parse).ToList();
+                var suppliers = await _context.Suppliers
+                    .Where(s => idList.Contains(s.SupplierId))
+                    .ToListAsync();
+                _context.Suppliers.RemoveRange(suppliers);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"{suppliers.Count} supplier(s) deleted successfully";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

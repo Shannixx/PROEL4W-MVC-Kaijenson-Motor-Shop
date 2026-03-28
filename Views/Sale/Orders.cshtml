@@ -14,29 +14,28 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Orders</h1>
-        <p class="page-subtitle">Manage your sales orders</p>
+        <p class="page-subtitle">View and manage all sales transactions</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-export" onclick="exportOrders()"><i class="fas fa-file-excel"></i> Export</button>
     </div>
 </div>
 
 <!-- Status Filter Tabs -->
-<div class="card" style="margin-bottom: 20px;">
-    <div class="card-body" style="padding: 12px 22px;">
-        <div class="status-tabs">
-            <a href="@Url.Action("Orders")" class="status-tab @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")">All (@totalItems)</a>
-            <a href="@Url.Action("Orders", new { status = "Completed" })" class="status-tab @(selectedStatus == "Completed" ? "active" : "")">Completed (@completedCount)</a>
-            <a href="@Url.Action("Orders", new { status = "Pending" })" class="status-tab @(selectedStatus == "Pending" ? "active" : "")">Pending (@pendingCount)</a>
-            <a href="@Url.Action("Orders", new { status = "Refunded" })" class="status-tab @(selectedStatus == "Refunded" ? "active" : "")">Refunded (@refundedCount)</a>
-        </div>
-    </div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+    <a href="@Url.Action("Orders")" class="status-tab @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")">All <span style="opacity:0.7;">(@totalItems)</span></a>
+    <a href="@Url.Action("Orders", new { status = "Completed" })" class="status-tab @(selectedStatus == "Completed" ? "active" : "")">Completed <span style="opacity:0.7;">(@completedCount)</span></a>
+    <a href="@Url.Action("Orders", new { status = "Pending" })" class="status-tab @(selectedStatus == "Pending" ? "active" : "")">Pending <span style="opacity:0.7;">(@pendingCount)</span></a>
+    <a href="@Url.Action("Orders", new { status = "Refunded" })" class="status-tab @(selectedStatus == "Refunded" ? "active" : "")">Refunded <span style="opacity:0.7;">(@refundedCount)</span></a>
 </div>
 
-<!-- Search -->
-<div class="card">
-    <div class="card-body">
+<!-- Search Bar -->
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-body" style="padding: 14px 22px;">
         <form method="get" action="@Url.Action("Orders")" class="filter-bar">
             <div class="filter-search">
                 <i class="fas fa-search"></i>
-                <input type="text" name="searchString" value="@searchString" placeholder="Search orders..." class="form-control" />
+                <input type="text" name="searchString" value="@searchString" placeholder="Search by order ID or customer..." class="form-control" />
             </div>
             <input type="hidden" name="status" value="@selectedStatus" />
             <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i> Search</button>
@@ -44,11 +43,26 @@
     </div>
 </div>
 
+<!-- Bulk Action Bar -->
+<div class="bulk-action-bar" id="bulkActionBar">
+    <div class="bulk-info">
+        <i class="fas fa-check-square"></i>
+        <span><span class="count" id="selectedCount">0</span> order(s) selected</span>
+    </div>
+    <div class="bulk-actions">
+        <button class="btn-bulk" onclick="BulkSelect.deselectAll()">Deselect All</button>
+        <form method="post" action="@Url.Action("BulkDelete", "Sale")" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ids" id="bulkDeleteIds" />
+            <button type="submit" class="btn-bulk btn-bulk-delete">
+                <i class="fas fa-trash"></i> Delete Selected (<span id="deleteSelectedCount">0</span>)
+            </button>
+        </form>
+    </div>
+</div>
+
 <!-- Orders Table -->
 <div class="card">
-    <div class="card-header">
-        <h2><i class="fas fa-clipboard-list"></i> Orders</h2>
-    </div>
     <div class="card-body">
         @if (Model.Any())
         {
@@ -56,12 +70,15 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="header-checkbox" onchange="BulkSelect.toggleAll(this, '.row-checkbox')" />
+                            </th>
                             <th>Order ID</th>
-                            <th>Date</th>
                             <th>Customer</th>
+                            <th>Date</th>
                             <th>Items</th>
-                            <th>Total</th>
                             <th>Payment</th>
+                            <th>Total</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -70,33 +87,42 @@
                         @foreach (var sale in Model)
                         {
                             <tr>
-                                <td><strong>#@sale.SaleId</strong></td>
-                                <td>@sale.Date.ToString("MMM dd, yyyy")</td>
-                                <td>@sale.CustomerName</td>
-                                <td>@sale.Items.Count items</td>
-                                <td><strong>₱@sale.Total.ToString("N2")</strong></td>
-                                <td>@sale.PaymentMethod</td>
                                 <td>
-                                    <span class="status-badge status-@sale.Status.ToLower()">
-                                        @sale.Status
-                                    </span>
+                                    <input type="checkbox" class="row-checkbox" data-id="@sale.SaleId"
+                                           onchange="BulkSelect.toggle('@sale.SaleId', this)" />
+                                </td>
+                                <td>
+                                    <a href="javascript:void(0)" onclick="viewOrder(@sale.SaleId)" style="color: var(--primary); font-weight: 600;">#@sale.SaleId</a>
+                                </td>
+                                <td>@sale.CustomerName</td>
+                                <td style="color: var(--text-secondary);">@sale.Date.ToString("MMM dd, yyyy")</td>
+                                <td>@sale.Items.Count item(s)</td>
+                                <td><span class="status-badge" style="background: var(--bg);">@sale.PaymentMethod</span></td>
+                                <td><strong>₱@sale.Total.ToString("N2")</strong></td>
+                                <td>
+                                    <form method="post" action="@Url.Action("UpdateStatus", "Sale")" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@sale.SaleId" />
+                                        @{
+                                            var statusBg = sale.Status == "Completed" ? "var(--success-light)" : sale.Status == "Pending" ? "var(--warning-light)" : "rgba(139,92,246,0.1)";
+                                            var statusColor = sale.Status == "Completed" ? "var(--success)" : sale.Status == "Pending" ? "var(--warning)" : "#8b5cf6";
+                                        }
+                                        <select name="status" onchange="this.form.submit()"
+                                            style="border:none; cursor:pointer; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; background:@statusBg; color:@statusColor;">
+                                            @if (sale.Status == "Completed") { <option value="Completed" selected>Completed</option> } else { <option value="Completed">Completed</option> }
+                                            @if (sale.Status == "Pending") { <option value="Pending" selected>Pending</option> } else { <option value="Pending">Pending</option> }
+                                            @if (sale.Status == "Refunded") { <option value="Refunded" selected>Refunded</option> } else { <option value="Refunded">Refunded</option> }
+                                        </select>
+                                    </form>
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="action-btn action-view" title="View Details" onclick="viewOrder(@sale.SaleId)">
+                                        <button class="action-btn action-view" title="View" onclick="viewOrder(@sale.SaleId)">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        @if (sale.Status == "Pending")
-                                        {
-                                            <form method="post" action="@Url.Action("UpdateStatus", "Sale")" style="display:inline;">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@sale.SaleId" />
-                                                <input type="hidden" name="status" value="Completed" />
-                                                <button type="submit" class="action-btn action-edit" title="Mark Complete">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            </form>
-                                        }
+                                        <button class="action-btn action-edit" title="Edit" onclick="editOrder(@sale.SaleId)">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
                                         <form method="post" action="@Url.Action("Delete", "Sale")" style="display:inline;" onsubmit="return confirm('Delete this order?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@sale.SaleId" />
@@ -104,6 +130,32 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        <div class="action-menu-wrapper">
+                                            <button class="action-menu-trigger" onclick="toggleActionMenu(event, 'menu-@sale.SaleId')">
+                                                <i class="fas fa-ellipsis-vertical"></i>
+                                            </button>
+                                            <div class="action-menu" id="menu-@sale.SaleId">
+                                                <button class="action-menu-item" onclick="printOrder(@sale.SaleId)">
+                                                    <i class="fas fa-print"></i> Print Order
+                                                </button>
+                                                <form method="post" action="@Url.Action("UpdateStatus", "Sale")" style="margin:0;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@sale.SaleId" />
+                                                    <input type="hidden" name="status" value="Completed" />
+                                                    <button type="submit" class="action-menu-item text-success">
+                                                        <i class="fas fa-check-circle"></i> Mark Complete
+                                                    </button>
+                                                </form>
+                                                <form method="post" action="@Url.Action("UpdateStatus", "Sale")" style="margin:0;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@sale.SaleId" />
+                                                    <input type="hidden" name="status" value="Refunded" />
+                                                    <button type="submit" class="action-menu-item text-danger">
+                                                        <i class="fas fa-rotate"></i> Refund
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -145,43 +197,250 @@
 
 <!-- Order Detail Modal -->
 <div class="modal-overlay" id="orderModal" style="display:none;">
-    <div class="modal-content">
+    <div class="modal-content" onclick="event.stopPropagation();">
         <div class="modal-header">
             <h3 id="orderModalTitle">Order Details</h3>
-            <button class="modal-close" onclick="closeOrderModal()"><i class="fas fa-xmark"></i></button>
+            <button class="modal-close" onclick="closeModal('orderModal')"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="modal-body" id="orderModalBody"></div>
     </div>
 </div>
 
+<!-- Edit Order Modal -->
+<div class="modal-overlay" id="editOrderModal" style="display:none;">
+    <div class="modal-content" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h3 id="editOrderTitle">Edit Order</h3>
+            <button class="modal-close" onclick="closeModal('editOrderModal')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <form method="post" action="@Url.Action("Edit", "Sale")" id="editOrderForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="editOrderId" />
+                <input type="hidden" name="editItems" id="editOrderItems" />
+                <div class="form-row" style="display:flex;gap:16px;">
+                    <div class="form-group">
+                        <label>Customer Name *</label>
+                        <input type="text" name="customerName" id="editCustomerName" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-row" style="display:flex;gap:16px;">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date" id="editDate" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Method</label>
+                        <select name="paymentMethod" id="editPaymentMethod" class="form-control">
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="GCash">GCash</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" id="editStatus" class="form-control">
+                        <option value="Completed">Completed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Refunded">Refunded</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <label style="margin:0;">Order Items</label>
+                        <button type="button" onclick="addEditItem()" class="btn btn-sm btn-outline"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                    <div id="editItemsContainer"></div>
+                    <div id="editItemsTotal" style="text-align:right; margin-top:10px; font-weight:700; color:var(--primary);"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editOrderModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" onclick="prepareEditSubmit()"><i class="fas fa-save"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        function viewOrder(id) {
-            fetch('/Sale/Details/' + id)
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('orderModalTitle').textContent = 'Order #' + data.saleId;
-                    let html = `
-                        <div class="order-detail-grid">
-                            <div class="order-detail-item"><span class="label">Date</span><span>${data.date}</span></div>
-                            <div class="order-detail-item"><span class="label">Customer</span><span>${data.customerName}</span></div>
-                            <div class="order-detail-item"><span class="label">Payment</span><span>${data.paymentMethod}</span></div>
-                            <div class="order-detail-item"><span class="label">Status</span><span class="status-badge status-${data.status.toLowerCase()}">${data.status}</span></div>
-                        </div>
-                        <h4 style="margin: 16px 0 8px;">Items</h4>
-                        <table class="data-table">
-                            <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
-                            <tbody>`;
-                    data.items.forEach(item => {
-                        html += `<tr><td>${item.productName}</td><td>${item.quantity}</td><td>₱${item.price}</td><td>₱${item.subtotal}</td></tr>`;
-                    });
-                    html += `</tbody></table>
-                        <div class="order-total" style="margin-top:16px; text-align:right; font-size:1.2rem; font-weight:700;">Total: ₱${data.total}</div>`;
-                    document.getElementById('orderModalBody').innerHTML = html;
-                    document.getElementById('orderModal').style.display = 'flex';
-                });
+        // Store order data for quick access
+        var ordersData = {};
+        @foreach (var sale in Model)
+        {
+            <text>
+            ordersData[@sale.SaleId] = {
+                id: @sale.SaleId,
+                customer: '@Html.Raw(sale.CustomerName.Replace("'", "\\'"))',
+                date: '@sale.Date.ToString("yyyy-MM-dd")',
+                dateFormatted: '@sale.Date.ToString("MMM dd, yyyy")',
+                payment: '@sale.PaymentMethod',
+                status: '@sale.Status',
+                total: @sale.Total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                items: [
+                    @foreach (var item in sale.Items)
+                    {
+                        <text>{ productName: '@Html.Raw(item.ProductName.Replace("'", "\\'"))', quantity: @item.Quantity, price: @item.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) },</text>
+                    }
+                ]
+            };
+            </text>
         }
-        function closeOrderModal() { document.getElementById('orderModal').style.display = 'none'; }
-        document.getElementById('orderModal').addEventListener('click', function(e) { if (e.target === this) closeOrderModal(); });
+
+        function viewOrder(id) {
+            var data = ordersData[id];
+            if (!data) {
+                fetch('/Sale/Details/' + id).then(r => r.json()).then(d => {
+                    showOrderDetail(d);
+                });
+                return;
+            }
+            showOrderDetail(data);
+        }
+
+        function showOrderDetail(data) {
+            var id = data.id || data.saleId;
+            document.getElementById('orderModalTitle').textContent = 'Order #' + id;
+            var html = '<div class="order-detail-grid">' +
+                '<div class="order-detail-item"><span class="label">Customer</span><span>' + (data.customer || data.customerName) + '</span></div>' +
+                '<div class="order-detail-item"><span class="label">Date</span><span>' + (data.dateFormatted || data.date) + '</span></div>' +
+                '<div class="order-detail-item"><span class="label">Payment</span><span>' + (data.payment || data.paymentMethod) + '</span></div>' +
+                '<div class="order-detail-item"><span class="label">Status</span><span class="status-badge status-' + (data.status || '').toLowerCase() + '">' + data.status + '</span></div>' +
+                '</div>' +
+                '<h4 style="margin:16px 0 8px;">Items</h4>' +
+                '<table class="data-table"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead><tbody>';
+            var items = data.items || [];
+            items.forEach(function(item) {
+                var price = item.price || 0;
+                var qty = item.quantity || 0;
+                html += '<tr><td>' + item.productName + '</td><td>' + qty + '</td><td>₱' + parseFloat(price).toLocaleString('en-PH',{minimumFractionDigits:2}) + '</td><td>₱' + (price * qty).toLocaleString('en-PH',{minimumFractionDigits:2}) + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            html += '<div style="margin-top:16px; text-align:right; font-size:1.2rem; font-weight:700; color:var(--primary);">Total: ₱' + parseFloat(data.total).toLocaleString('en-PH',{minimumFractionDigits:2}) + '</div>';
+
+            // Action buttons
+            html += '<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:16px;">' +
+                '<button class="btn btn-sm btn-outline" onclick="closeModal(\'orderModal\'); editOrder(' + (data.id||data.saleId) + ');"><i class="fas fa-pen"></i> Edit</button>' +
+                '<button class="btn btn-sm btn-outline" onclick="printOrder(' + (data.id||data.saleId) + ')"><i class="fas fa-print"></i> Print</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="if(confirm(\'Delete this order?\')) { closeModal(\'orderModal\'); document.getElementById(\'deleteForm-' + (data.id||data.saleId) + '\')?.submit(); }"><i class="fas fa-trash"></i> Delete</button>' +
+                '</div>';
+
+            document.getElementById('orderModalBody').innerHTML = html;
+            openModal('orderModal');
+        }
+
+        var editItems = [];
+
+        function editOrder(id) {
+            var data = ordersData[id];
+            if (!data) return;
+            document.getElementById('editOrderTitle').textContent = 'Edit Order #' + id;
+            document.getElementById('editOrderId').value = id;
+            document.getElementById('editCustomerName').value = data.customer;
+            document.getElementById('editDate').value = data.date;
+            document.getElementById('editPaymentMethod').value = data.payment;
+            document.getElementById('editStatus').value = data.status;
+            editItems = data.items.map(function(i) { return { productName: i.productName, quantity: i.quantity, price: i.price }; });
+            renderEditItems();
+            openModal('editOrderModal');
+        }
+
+        function renderEditItems() {
+            var container = document.getElementById('editItemsContainer');
+            var html = '';
+            var total = 0;
+            editItems.forEach(function(item, i) {
+                var subtotal = item.price * item.quantity;
+                total += subtotal;
+                html += '<div style="padding:10px; background:var(--bg); border-radius:var(--radius); margin-bottom:8px; border:1px solid var(--border);">' +
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+                    '<span style="font-size:0.78rem; color:var(--text-secondary);">Item ' + (i+1) + '</span>' +
+                    '<button type="button" onclick="removeEditItem(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.85rem;"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                    '<input type="text" value="' + item.productName.replace(/"/g,'&quot;') + '" onchange="editItems['+i+'].productName=this.value" class="form-control" placeholder="Product name" style="margin-bottom:6px;" />' +
+                    '<div style="display:flex;gap:8px;">' +
+                    '<div style="flex:1;"><label style="font-size:0.75rem;color:var(--text-secondary);">Qty</label><input type="number" min="1" value="' + item.quantity + '" onchange="editItems['+i+'].quantity=parseInt(this.value)||1;renderEditItems();" class="form-control" /></div>' +
+                    '<div style="flex:1;"><label style="font-size:0.75rem;color:var(--text-secondary);">Price</label><input type="number" min="0" step="0.01" value="' + item.price + '" onchange="editItems['+i+'].price=parseFloat(this.value)||0;renderEditItems();" class="form-control" /></div>' +
+                    '</div>' +
+                    '<div style="text-align:right;font-size:0.78rem;color:var(--text-secondary);margin-top:4px;">Subtotal: ₱' + subtotal.toLocaleString('en-PH',{minimumFractionDigits:2}) + '</div>' +
+                    '</div>';
+            });
+            container.innerHTML = html;
+            document.getElementById('editItemsTotal').textContent = 'Order Total: ₱' + total.toLocaleString('en-PH',{minimumFractionDigits:2});
+        }
+
+        function addEditItem() {
+            editItems.push({ productName: '', quantity: 1, price: 0 });
+            renderEditItems();
+        }
+
+        function removeEditItem(index) {
+            editItems.splice(index, 1);
+            renderEditItems();
+        }
+
+        function prepareEditSubmit() {
+            document.getElementById('editOrderItems').value = JSON.stringify(editItems);
+        }
+
+        function printOrder(id) {
+            var data = ordersData[id];
+            if (!data) return;
+            printReceipt({
+                id: data.id,
+                date: data.dateFormatted,
+                customer: data.customer,
+                payment: data.payment,
+                status: data.status,
+                total: data.total,
+                items: data.items
+            });
+        }
+
+        function exportOrders() {
+            var data = [];
+            @foreach (var sale in Model)
+            {
+                <text>
+                data.push({
+                    'Order ID': '#@sale.SaleId',
+                    'Customer': '@Html.Raw(sale.CustomerName.Replace("'", "\\'"))',
+                    'Date': '@sale.Date.ToString("yyyy-MM-dd")',
+                    'Items': '@sale.Items.Count item(s)',
+                    'Payment': '@sale.PaymentMethod',
+                    'Total': @sale.Total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                    'Status': '@sale.Status'
+                });
+                </text>
+            }
+            exportToExcel(data, 'Orders', 'Orders-' + todayISO() + '.xlsx', [12, 20, 14, 12, 16, 12, 12]);
+        }
+
+        function confirmBulkDelete() {
+            var ids = BulkSelect.getIds();
+            if (ids.length === 0) return false;
+            if (!confirm('Delete ' + ids.length + ' order(s)? This cannot be undone.')) return false;
+            document.getElementById('bulkDeleteIds').value = ids.join(',');
+            return true;
+        }
+
+        // Action menu toggle
+        function toggleActionMenu(event, menuId) {
+            event.stopPropagation();
+            var menu = document.getElementById(menuId);
+            // Close all other menus
+            document.querySelectorAll('.action-menu.show').forEach(function(m) {
+                if (m.id !== menuId) m.classList.remove('show');
+            });
+            menu.classList.toggle('show');
+        }
+
+        // Close action menus on click outside
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.action-menu.show').forEach(function(m) {
+                m.classList.remove('show');
+            });
+        });
     </script>
 }

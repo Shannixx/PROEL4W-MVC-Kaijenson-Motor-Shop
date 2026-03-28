@@ -11,40 +11,66 @@
         <h1 class="page-title">Reports</h1>
         <p class="page-subtitle">Business analytics and performance overview</p>
     </div>
+    <div class="header-actions">
+        <button class="btn btn-export" onclick="exportReport()"><i class="fas fa-file-excel"></i> Export Report</button>
+    </div>
 </div>
 
+<!-- Stats Cards -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-content"><p class="stat-label">Total Revenue</p><h3 class="stat-value">₱@totalSales.ToString("N0")</h3></div>
+        <div class="stat-content">
+            <p class="stat-label">Total Revenue</p>
+            <h3 class="stat-value" style="color: var(--success);">₱@totalSales.ToString("N0")</h3>
+            <div class="stat-change positive"><i class="fas fa-arrow-trend-up"></i> <span>All time</span></div>
+        </div>
         <div class="stat-icon stat-icon-green"><i class="fas fa-peso-sign"></i></div>
     </div>
     <div class="stat-card">
-        <div class="stat-content"><p class="stat-label">Total Orders</p><h3 class="stat-value">@totalOrders</h3></div>
-        <div class="stat-icon stat-icon-blue"><i class="fas fa-shopping-cart"></i></div>
+        <div class="stat-content">
+            <p class="stat-label">Net Profit (Est.)</p>
+            <h3 class="stat-value">₱@((totalSales * 0.3m).ToString("N0"))</h3>
+            <div class="stat-change positive"><span>~30% margin</span></div>
+        </div>
+        <div class="stat-icon stat-icon-blue"><i class="fas fa-chart-line"></i></div>
     </div>
     <div class="stat-card">
-        <div class="stat-content"><p class="stat-label">Total Customers</p><h3 class="stat-value">@totalCustomers</h3></div>
-        <div class="stat-icon stat-icon-yellow"><i class="fas fa-users"></i></div>
+        <div class="stat-content">
+            <p class="stat-label">Total Orders</p>
+            <h3 class="stat-value">@totalOrders</h3>
+            <div class="stat-change neutral"><span>All time</span></div>
+        </div>
+        <div class="stat-icon stat-icon-yellow"><i class="fas fa-shopping-cart"></i></div>
     </div>
     <div class="stat-card">
-        <div class="stat-content"><p class="stat-label">Total Products</p><h3 class="stat-value">@totalProducts</h3></div>
+        <div class="stat-content">
+            <p class="stat-label">Products Sold</p>
+            <h3 class="stat-value">@totalProducts</h3>
+            <div class="stat-change neutral"><span>catalog size</span></div>
+        </div>
         <div class="stat-icon stat-icon-purple"><i class="fas fa-boxes-stacked"></i></div>
     </div>
 </div>
 
+<!-- Charts Row -->
 <div class="dashboard-grid">
     <div class="card">
-        <div class="card-header"><h2><i class="fas fa-chart-line"></i> Sales Overview</h2></div>
+        <div class="card-header">
+            <h2><i class="fas fa-chart-area"></i> Revenue Overview</h2>
+            <span class="text-muted">Monthly trend</span>
+        </div>
         <div class="card-body"><canvas id="monthlySalesChart" height="280"></canvas></div>
     </div>
     <div class="card">
-        <div class="card-header"><h2><i class="fas fa-chart-pie"></i> Sales by Category</h2></div>
+        <div class="card-header">
+            <h2><i class="fas fa-chart-pie"></i> Sales by Category</h2>
+        </div>
         <div class="card-body"><canvas id="categorySalesChart" height="280"></canvas></div>
     </div>
 </div>
 
 <!-- Quick Links -->
-<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 4px;">
     <a href="@Url.Action("Sales", "Report")" class="stat-card" style="text-decoration:none;">
         <div class="stat-icon stat-icon-green"><i class="fas fa-receipt"></i></div>
         <div class="stat-info"><h3>Sales Reports</h3><p>Revenue analysis & trends</p></div>
@@ -68,15 +94,28 @@
                 type: 'line',
                 data: {
                     labels: monthlyData.map(d => d.month),
-                    datasets: [{
-                        label: 'Revenue',
-                        data: monthlyData.map(d => d.sales),
-                        borderColor: '#FD7E14',
-                        backgroundColor: 'rgba(253, 126, 20, 0.1)',
-                        fill: true, tension: 0.4, borderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: monthlyData.map(d => d.sales),
+                            borderColor: '#FD7E14',
+                            backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                            fill: true, tension: 0.4, borderWidth: 2
+                        },
+                        {
+                            label: 'Profit (Est.)',
+                            data: monthlyData.map(d => d.sales * 0.3),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            fill: true, tension: 0.4, borderWidth: 2, borderDash: [5, 5]
+                        }
+                    ]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
             });
         }
 
@@ -93,6 +132,34 @@
                 },
                 options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
             });
+        }
+
+        function exportReport() {
+            var summary = [{
+                'Metric': 'Total Revenue',
+                'Value': '@totalSales.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)'
+            }, {
+                'Metric': 'Total Orders',
+                'Value': '@totalOrders'
+            }, {
+                'Metric': 'Total Customers',
+                'Value': '@totalCustomers'
+            }, {
+                'Metric': 'Total Products',
+                'Value': '@totalProducts'
+            }];
+
+            var salesData = [];
+            if (monthlyData.length > 0) {
+                monthlyData.forEach(function(d) {
+                    salesData.push({ 'Month': d.month, 'Revenue': d.sales, 'Profit Est.': (d.sales * 0.3).toFixed(2) });
+                });
+            }
+
+            exportToExcelMulti([
+                { name: 'Summary', data: summary, colWidths: [20, 20] },
+                { name: 'Monthly Sales', data: salesData, colWidths: [15, 15, 15] }
+            ], 'Report-' + todayISO() + '.xlsx');
         }
     </script>
 }

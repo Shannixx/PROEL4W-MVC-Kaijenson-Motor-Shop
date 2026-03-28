@@ -239,6 +239,97 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             }
             return RedirectToAction(nameof(Orders));
         }
+
+        // POST: /Sale/Edit
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, string customerName, string paymentMethod, string status, string date, string editItems)
+        {
+            var sale = await _context.Sales.Include(s => s.Items).FirstOrDefaultAsync(s => s.SaleId == id);
+            if (sale == null)
+            {
+                TempData["ErrorMessage"] = "Order not found";
+                return RedirectToAction(nameof(Orders));
+            }
+
+            try
+            {
+                sale.CustomerName = string.IsNullOrEmpty(customerName) ? sale.CustomerName : customerName;
+                sale.PaymentMethod = paymentMethod ?? sale.PaymentMethod;
+                sale.Status = status ?? sale.Status;
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var parsedDate))
+                    sale.Date = parsedDate;
+
+                // Update items
+                if (!string.IsNullOrEmpty(editItems))
+                {
+                    var items = JsonSerializer.Deserialize<List<CartItem>>(editItems);
+                    if (items != null && items.Any())
+                    {
+                        _context.SaleItems.RemoveRange(sale.Items);
+                        foreach (var item in items)
+                        {
+                            _context.SaleItems.Add(new SaleItem
+                            {
+                                SaleId = sale.SaleId,
+                                ProductName = item.ProductName,
+                                Quantity = item.Quantity,
+                                Price = item.Price
+                            });
+                        }
+                        sale.Total = items.Sum(i => i.Price * i.Quantity);
+                    }
+                }
+
+                var userId = HttpContext.Session.GetInt32("UserId");
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    UserId = userId,
+                    Action = "Edit Order",
+                    Details = $"Updated order #{sale.SaleId}",
+                    Timestamp = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Order #{sale.SaleId} updated successfully";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating order: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Orders));
+        }
+
+        // POST: /Sale/BulkDelete
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkDelete(string ids)
+        {
+            if (string.IsNullOrEmpty(ids))
+                return RedirectToAction(nameof(Orders));
+
+            try
+            {
+                var idList = ids.Split(',').Select(int.Parse).ToList();
+                var sales = await _context.Sales.Include(s => s.Items)
+                    .Where(s => idList.Contains(s.SaleId))
+                    .ToListAsync();
+
+                foreach (var sale in sales)
+                {
+                    _context.SaleItems.RemoveRange(sale.Items);
+                    _context.Sales.Remove(sale);
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"{sales.Count} order(s) deleted successfully";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error deleting orders: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Orders));
+        }
     }
 
     public class CartItem
@@ -248,3 +339,4 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
         public decimal Price { get; set; }
     }
 }
+

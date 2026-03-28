@@ -281,5 +281,42 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // POST: /Product/BulkDelete
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkDelete(string ids)
+        {
+            if (string.IsNullOrEmpty(ids))
+                return RedirectToAction(nameof(Index));
+
+            try
+            {
+                var idList = ids.Split(',').Select(int.Parse).ToList();
+                var products = await _context.Products
+                    .Where(p => idList.Contains(p.ProductId))
+                    .ToListAsync();
+
+                _context.Products.RemoveRange(products);
+                await _context.SaveChangesAsync();
+
+                var userId = HttpContext.Session.GetInt32("UserId");
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    UserId = userId,
+                    Action = "Delete Product",
+                    Details = $"Bulk deleted {products.Count} product(s)",
+                    Timestamp = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"{products.Count} product(s) deleted successfully";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error deleting products: " + ex.Message;
+            }
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

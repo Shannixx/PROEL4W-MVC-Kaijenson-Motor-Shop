@@ -15,26 +15,38 @@
         <h1 class="page-title">Stock Transactions</h1>
         <p class="page-subtitle">Track all stock movements</p>
     </div>
-    <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</a>
-</div>
-
-<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-blue"><i class="fas fa-arrow-right-arrow-left"></i></div>
-        <div class="stat-info"><h3>@totalItems</h3><p>Total Transactions</p></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-green"><i class="fas fa-arrow-down"></i></div>
-        <div class="stat-info"><h3>@stockInCount</h3><p>Stock In</p></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-red"><i class="fas fa-arrow-up"></i></div>
-        <div class="stat-info"><h3>@stockOutCount</h3><p>Stock Out</p></div>
+    <div class="header-actions">
+        <button class="btn btn-export" onclick="exportTransactions()"><i class="fas fa-file-excel"></i> Export</button>
+        <a href="@Url.Action("Create")" class="btn btn-primary"><i class="fas fa-plus"></i> Add Transaction</a>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
+<div class="stats-grid-3">
+    <div class="stat-card-icon">
+        <div class="sci-icon blue"><i class="fas fa-arrow-right-arrow-left"></i></div>
+        <div>
+            <div class="sci-label">Total Transactions</div>
+            <div class="sci-value">@totalItems</div>
+        </div>
+    </div>
+    <div class="stat-card-icon">
+        <div class="sci-icon green"><i class="fas fa-arrow-down"></i></div>
+        <div>
+            <div class="sci-label">Stock In</div>
+            <div class="sci-value green-text">@stockInCount</div>
+        </div>
+    </div>
+    <div class="stat-card-icon">
+        <div class="sci-icon red"><i class="fas fa-arrow-up"></i></div>
+        <div>
+            <div class="sci-label">Stock Out</div>
+            <div class="sci-value red-text">@stockOutCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-body" style="padding: 14px 22px;">
         <form method="get" class="filter-bar">
             <div class="filter-search">
                 <i class="fas fa-search"></i>
@@ -43,11 +55,45 @@
             <div class="filter-select">
                 <select name="type" class="form-control">
                     <option value="">All Types</option>
-                    <option value="stock-in" selected="@(selectedType == "stock-in")">Stock In</option>
-                    <option value="stock-out" selected="@(selectedType == "stock-out")">Stock Out</option>
+                    @if (selectedType == "stock-in")
+                    {
+                        <option value="stock-in" selected>Stock In</option>
+                    }
+                    else
+                    {
+                        <option value="stock-in">Stock In</option>
+                    }
+                    @if (selectedType == "stock-out")
+                    {
+                        <option value="stock-out" selected>Stock Out</option>
+                    }
+                    else
+                    {
+                        <option value="stock-out">Stock Out</option>
+                    }
                 </select>
             </div>
             <button type="submit" class="btn btn-outline"><i class="fas fa-filter"></i> Filter</button>
+            @if (!string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(selectedType))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-clear"><i class="fas fa-times"></i> Clear</a>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Action Bar -->
+<div class="bulk-action-bar" id="bulkActionBar">
+    <div class="bulk-info">
+        <i class="fas fa-check-square"></i>
+        <span><span class="count" id="selectedCount">0</span> transaction(s) selected</span>
+    </div>
+    <div class="bulk-actions">
+        <button class="btn-bulk" onclick="BulkSelect.deselectAll()">Deselect All</button>
+        <form method="post" action="@Url.Action("BulkDelete", "StockTransaction")" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ids" id="bulkDeleteIds" />
+            <button type="submit" class="btn-bulk btn-bulk-delete"><i class="fas fa-trash"></i> Delete (<span id="deleteSelectedCount">0</span>)</button>
         </form>
     </div>
 </div>
@@ -63,6 +109,9 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="header-checkbox" onchange="BulkSelect.toggleAll(this, '.row-checkbox')" />
+                            </th>
                             <th>Date</th>
                             <th>Time</th>
                             <th>Product</th>
@@ -77,9 +126,13 @@
                         @foreach (var t in Model)
                         {
                             <tr>
-                                <td>@t.Date.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <input type="checkbox" class="row-checkbox" data-id="@t.StockTransactionId"
+                                           onchange="BulkSelect.toggle('@t.StockTransactionId', this)" />
+                                </td>
+                                <td style="color: var(--text-secondary);">@t.Date.ToString("MMM dd, yyyy")</td>
                                 <td>@t.Time</td>
-                                <td>@t.ProductName</td>
+                                <td><strong>@t.ProductName</strong></td>
                                 <td>
                                     <span class="status-badge @(t.Type == "stock-in" ? "status-in-stock" : "status-out-of-stock")">
                                         @(t.Type == "stock-in" ? "Stock In" : "Stock Out")
@@ -103,11 +156,19 @@
             @if (totalPages > 1)
             {
                 <div class="pagination">
-                    <span class="pagination-info">Page @currentPage of @totalPages</span>
+                    <span class="pagination-info">Page @currentPage of @totalPages (@totalItems transactions)</span>
                     <div class="pagination-links">
+                        @if (currentPage > 1)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage - 1, searchString, type = selectedType })" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+                        }
                         @for (int i = 1; i <= totalPages; i++)
                         {
                             <a href="@Url.Action("Index", new { page = i, searchString, type = selectedType })" class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                        @if (currentPage < totalPages)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage + 1, searchString, type = selectedType })" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
                         }
                     </div>
                 </div>
@@ -122,3 +183,34 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function exportTransactions() {
+            var data = [];
+            @foreach (var t in Model)
+            {
+                <text>
+                data.push({
+                    'Date': '@t.Date.ToString("yyyy-MM-dd")',
+                    'Time': '@t.Time',
+                    'Product': '@Html.Raw(t.ProductName.Replace("'", "\\'"))',
+                    'Type': '@(t.Type == "stock-in" ? "Stock In" : "Stock Out")',
+                    'Quantity': @t.Quantity,
+                    'Reference': '@(t.Reference ?? "")',
+                    'Performed By': '@(t.PerformedBy ?? "")'
+                });
+                </text>
+            }
+            exportToExcel(data, 'Transactions', 'StockTransactions-' + todayISO() + '.xlsx', [14, 10, 25, 12, 10, 20, 15]);
+        }
+
+        function confirmBulkDelete() {
+            var ids = BulkSelect.getIds();
+            if (ids.length === 0) return false;
+            if (!confirm('Delete ' + ids.length + ' transaction(s)?')) return false;
+            document.getElementById('bulkDeleteIds').value = ids.join(',');
+            return true;
+        }
+    </script>
+}
