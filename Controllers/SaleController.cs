@@ -128,6 +128,32 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Create notifications
+                var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+                // New order notification
+                await NotificationController.CreateNotification(_context, currentUserId,
+                    "new-order", "New Sale Completed",
+                    $"Sale #{sale.SaleId} — ₱{sale.Total:N2} from {sale.CustomerName}");
+
+                // Check for low stock alerts
+                foreach (var item in items)
+                {
+                    var prod = await _context.Products.FirstOrDefaultAsync(p => p.ProductName == item.ProductName);
+                    if (prod != null && prod.StockQuantity <= prod.MinStock && prod.StockQuantity > 0)
+                    {
+                        await NotificationController.NotifyAdmins(_context,
+                            "low-stock", "Low Stock Alert",
+                            $"{prod.ProductName} is running low ({prod.StockQuantity} remaining)");
+                    }
+                    else if (prod != null && prod.StockQuantity <= 0)
+                    {
+                        await NotificationController.NotifyAdmins(_context,
+                            "low-stock", "Out of Stock!",
+                            $"{prod.ProductName} is now out of stock");
+                    }
+                }
+
                 TempData["SuccessMessage"] = $"Sale #{sale.SaleId} completed! Total: ₱{sale.Total:N2}";
                 return RedirectToAction(nameof(Index));
             }

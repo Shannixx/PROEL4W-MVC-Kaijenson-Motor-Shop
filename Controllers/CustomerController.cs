@@ -20,6 +20,12 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (HttpContext.Session.GetInt32("UserId") == null)
                 return RedirectToAction("Login", "Account");
 
+            if (HttpContext.Session.GetString("UserRole") != "Admin")
+            {
+                TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             int pageSize = 10;
             var customers = _context.Customers.AsQueryable();
 
@@ -70,6 +76,23 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
                 customer.CreatedAt = DateTime.Now;
                 _context.Customers.Add(customer);
                 await _context.SaveChangesAsync();
+
+                // Trigger customer activity notification
+                await NotificationController.NotifyAdmins(_context,
+                    "customer", "New Customer Added",
+                    $"Customer \"{customer.Name}\" has been registered");
+
+                // Log activity
+                var userId = HttpContext.Session.GetInt32("UserId");
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    UserId = userId,
+                    Action = "Create Customer",
+                    Details = $"Added new customer: {customer.Name}",
+                    Timestamp = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+
                 TempData["SuccessMessage"] = $"Customer \"{customer.Name}\" added successfully!";
                 return RedirectToAction(nameof(Index));
             }
@@ -119,9 +142,21 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             var customer = await _context.Customers.FindAsync(id);
             if (customer != null)
             {
+                string custName = customer.Name;
                 _context.Customers.Remove(customer);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Customer \"{customer.Name}\" deleted!";
+
+                var userId = HttpContext.Session.GetInt32("UserId");
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    UserId = userId,
+                    Action = "Delete Customer",
+                    Details = $"Deleted customer: {custName}",
+                    Timestamp = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Customer \"{custName}\" deleted!";
             }
             return RedirectToAction(nameof(Index));
         }

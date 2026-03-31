@@ -88,6 +88,22 @@
                                         <a href="@Url.Action("Edit", new { id = user.UserId })" class="action-btn action-edit" title="Edit">
                                             <i class="fas fa-pen"></i>
                                         </a>
+                                        @{
+                                            var currentSessionUserId = Context.Session.GetInt32("UserId");
+                                            var targetRole = user.Role == "Admin" ? "Manager" : "Admin";
+                                            var roleIcon = user.Role == "Admin" ? "fa-user" : "fa-user-shield";
+                                            var roleTitle = $"Change to {targetRole}";
+                                        }
+                                        @if (user.UserId != currentSessionUserId)
+                                        {
+                                            <form asp-action="ChangeRole" method="post" style="display:inline;" onsubmit="return confirm('Change @user.FullName role to @targetRole?');">
+                                                <input type="hidden" name="id" value="@user.UserId" />
+                                                <input type="hidden" name="newRole" value="@targetRole" />
+                                                <button type="submit" class="action-btn action-view" title="@roleTitle">
+                                                    <i class="fas @roleIcon"></i>
+                                                </button>
+                                            </form>
+                                        }
                                         <a href="@Url.Action("Delete", new { id = user.UserId })" class="action-btn action-delete" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </a>

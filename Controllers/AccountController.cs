@@ -95,7 +95,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
                 LastName = model.LastName,
                 Email = model.Username,
                 Password = HashingService.HashData(model.Password),
-                Role = "Staff",
+                Role = "Manager",
                 CreatedAt = DateTime.Now
             };
 

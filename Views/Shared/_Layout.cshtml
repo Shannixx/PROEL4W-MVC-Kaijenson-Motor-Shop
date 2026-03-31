@@ -1,9 +1,11 @@
 @{
     var userName = Context.Session.GetString("UserName") ?? "User";
-    var userRole = Context.Session.GetString("UserRole") ?? "Staff";
+    var userRole = Context.Session.GetString("UserRole") ?? "Manager";
     var userImage = Context.Session.GetString("UserImage");
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isAdmin = userRole == "Admin";
+    var initials = userName.Length >= 2 ? userName.Substring(0, 2).ToUpper() : userName.ToUpper();
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -40,10 +42,13 @@
                 <i class="fas fa-th-large"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="@Url.Action("Index", "Product")" class="nav-link @(currentController == "Product" ? "active" : "")">
-                <i class="fas fa-boxes-stacked"></i>
-                <span>Inventory</span>
-            </a>
+            @if (isAdmin)
+            {
+                <a href="@Url.Action("Index", "Product")" class="nav-link @(currentController == "Product" ? "active" : "")">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>Inventory</span>
+                </a>
+            }
             <a href="@Url.Action("Index", "Sale")" class="nav-link @(currentController == "Sale" && currentAction == "Index" ? "active" : "")">
                 <i class="fas fa-shopping-cart"></i>
                 <span>Point of Sale</span>
@@ -52,43 +57,53 @@
                 <i class="fas fa-clipboard-list"></i>
                 <span>Orders</span>
             </a>
-            <a href="@Url.Action("Index", "Customer")" class="nav-link @(currentController == "Customer" ? "active" : "")">
-                <i class="fas fa-users"></i>
-                <span>Customers</span>
-            </a>
+            @if (isAdmin)
+            {
+                <a href="@Url.Action("Index", "Customer")" class="nav-link @(currentController == "Customer" ? "active" : "")">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </a>
+            }
             <a href="@Url.Action("Index", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Index" ? "active" : "")">
                 <i class="fas fa-chart-bar"></i>
                 <span>Reports</span>
             </a>
 
-            <p class="nav-section-label mt-4">INVENTORY TOOLS</p>
-            <a href="@Url.Action("Index", "StockTransaction")" class="nav-link @(currentController == "StockTransaction" ? "active" : "")">
-                <i class="fas fa-arrow-right-arrow-left"></i>
-                <span>Stock Transactions</span>
-            </a>
-            <a href="@Url.Action("Index", "Supplier")" class="nav-link @(currentController == "Supplier" ? "active" : "")">
-                <i class="fas fa-truck"></i>
-                <span>Suppliers</span>
-            </a>
-            <a href="@Url.Action("Inventory", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Inventory" ? "active" : "")">
-                <i class="fas fa-file-chart-column"></i>
-                <span>Inventory Reports</span>
-            </a>
-            <a href="@Url.Action("Restocking", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Restocking" ? "active" : "")">
-                <i class="fas fa-box-check"></i>
-                <span>Restocking</span>
-            </a>
-            <a href="@Url.Action("Sales", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Sales" ? "active" : "")">
-                <i class="fas fa-receipt"></i>
-                <span>Sales Reports</span>
-            </a>
+            @if (isAdmin)
+            {
+                <p class="nav-section-label mt-4">INVENTORY TOOLS</p>
+                <a href="@Url.Action("Index", "StockTransaction")" class="nav-link @(currentController == "StockTransaction" ? "active" : "")">
+                    <i class="fas fa-arrow-right-arrow-left"></i>
+                    <span>Stock Transactions</span>
+                </a>
+                <a href="@Url.Action("Index", "Supplier")" class="nav-link @(currentController == "Supplier" ? "active" : "")">
+                    <i class="fas fa-truck-field"></i>
+                    <span>Suppliers</span>
+                </a>
+                <a href="@Url.Action("Inventory", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Inventory" ? "active" : "")">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Inventory Reports</span>
+                </a>
+                <a href="@Url.Action("Restocking", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Restocking" ? "active" : "")">
+                    <i class="fas fa-boxes-packing"></i>
+                    <span>Restocking</span>
+                </a>
+                <a href="@Url.Action("Sales", "Report")" class="nav-link @(currentController == "Report" && currentAction == "Sales" ? "active" : "")">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Sales Reports</span>
+                </a>
+            }
 
-            @if (userRole == "Admin")
+            @if (isAdmin)
             {
                 <p class="nav-section-label mt-4">ADMIN</p>
                 <a href="@Url.Action("Index", "User")" class="nav-link @(currentController == "User" && currentAction != "Profile" && currentAction != "ChangePassword" ? "active" : "")">
                     <i class="fas fa-user-shield"></i>
                     <span>User Management</span>
+                </a>
+                <a href="@Url.Action("Index", "ActivityLog")" class="nav-link @(currentController == "ActivityLog" ? "active" : "")">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <span>Activity Logs</span>
                 </a>
             }
         </nav>
@@ -113,21 +128,47 @@
                 <button class="menu-toggle" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="header-search">
+                <div class="header-search" id="globalSearchWrapper">
                     <i class="fas fa-search"></i>
-                    <form id="globalSearchForm" method="get" action="@Url.Action("Index", "Product")">
-                        <input type="text" name="searchString" placeholder="Search products, orders..." />
-                    </form>
+                    <input type="text" id="globalSearchInput" placeholder="Search products, orders..." autocomplete="off" />
+                    <!-- Global Search Results Dropdown -->
+                    <div class="global-search-dropdown" id="globalSearchDropdown">
+                        <div class="global-search-loading" id="globalSearchLoading" style="display:none;">
+                            <i class="fas fa-spinner fa-spin"></i> Searching...
+                        </div>
+                        <div id="globalSearchResults"></div>
+                        <div class="global-search-empty" id="globalSearchEmpty" style="display:none;">
+                            <i class="fas fa-search"></i>
+                            <p>No results found</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="header-right">
                 <div class="header-notifications">
-                    <button class="notification-btn">
+                    <button class="notification-btn" id="notificationBell" onclick="toggleNotificationDropdown()">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
+                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
                     </button>
+                    <!-- Notification Dropdown -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-dropdown-header">
+                            <h3>Notifications</h3>
+                            <button onclick="markAllNotificationsRead()" class="notification-mark-all">Mark all read</button>
+                        </div>
+                        <div class="notification-dropdown-body" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications</p>
+                            </div>
+                        </div>
+                        <div class="notification-dropdown-footer">
+                            <span id="notificationSummary">0 notifications</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="header-profile">
+                <!-- Profile Dropdown -->
+                <div class="header-profile" id="profileDropdownTrigger" onclick="toggleProfileDropdown()">
                     <div class="profile-avatar">
                         @if (!string.IsNullOrEmpty(userImage))
                         {
@@ -135,12 +176,50 @@
                         }
                         else
                         {
-                            <span>@(userName.Length >= 2 ? userName.Substring(0, 2).ToUpper() : userName.ToUpper())</span>
+                            <span>@initials</span>
                         }
                     </div>
                     <div class="profile-info">
-                        <span class="profile-role">@userRole</span>
+                        <span class="profile-role">@userRole.ToUpper()</span>
                         <span class="profile-name">@userName</span>
+                    </div>
+                    <i class="fas fa-chevron-down profile-chevron"></i>
+                    <!-- Profile Dropdown Menu -->
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-dropdown-header">
+                            <div class="profile-dropdown-avatar">
+                                @if (!string.IsNullOrEmpty(userImage))
+                                {
+                                    <img src="@userImage" alt="Profile" />
+                                }
+                                else
+                                {
+                                    <span>@initials</span>
+                                }
+                            </div>
+                            <div class="profile-dropdown-info">
+                                <strong>@userName</strong>
+                                <span class="role-badge role-@userRole.ToLower()">@userRole</span>
+                            </div>
+                        </div>
+                        <div class="profile-dropdown-divider"></div>
+                        <a href="@Url.Action("Profile", "User")" class="profile-dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="@Url.Action("Profile", "User")" class="profile-dropdown-item" onclick="sessionStorage.setItem('openSettingsTab','security')">
+                            <i class="fas fa-key"></i>
+                            <span>Change Password</span>
+                        </a>
+                        <a href="@Url.Action("Profile", "User")" class="profile-dropdown-item" onclick="sessionStorage.setItem('openSettingsTab','notifications')">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <div class="profile-dropdown-divider"></div>
+                        <a href="@Url.Action("Logout", "Account")" class="profile-dropdown-item profile-dropdown-logout" onclick="return confirm('Are you sure you want to log out?');">
+                            <i class="fas fa-right-from-bracket"></i>
+                            <span>Log Out</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -188,6 +267,15 @@
                 setTimeout(function () { alert.remove(); }, 300);
             });
         }, 5000);
+
+        // Open settings tab from sessionStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            var tab = sessionStorage.getItem('openSettingsTab');
+            if (tab) {
+                sessionStorage.removeItem('openSettingsTab');
+                // Will be handled by Profile page JS
+            }
+        });
     </script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <div id="toastContainer" class="toast-container"></div>

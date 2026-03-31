@@ -19,6 +19,12 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (HttpContext.Session.GetInt32("UserId") == null)
                 return RedirectToAction("Login", "Account");
 
+            if (HttpContext.Session.GetString("UserRole") != "Admin")
+            {
+                TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             int pageSize = 10;
             var suppliers = _context.Suppliers.AsQueryable();
 

@@ -1,0 +1,207 @@
+@model IEnumerable<PROEL4W_MVC_Kaijenson_Motor_Shop.Models.ActivityLog>
+@{
+    ViewData["Title"] = "Activity Logs";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var totalItems = (int)(ViewData["TotalItems"] ?? 0);
+    var searchString = ViewData["SearchString"]?.ToString() ?? "";
+    var actionFilter = ViewData["ActionFilter"]?.ToString() ?? "";
+    var dateFrom = ViewData["DateFrom"]?.ToString() ?? "";
+    var dateTo = ViewData["DateTo"]?.ToString() ?? "";
+    var actionTypes = ViewData["ActionTypes"] as List<string> ?? new List<string>();
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Activity Logs</h1>
+        <p class="page-subtitle">Track all system activities and user actions</p>
+    </div>
+    <div class="page-header-actions">
+        <button class="btn btn-outline" onclick="exportActivityLogs()">
+            <i class="fas fa-file-excel"></i> Export
+        </button>
+        <form asp-action="ClearAll" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to clear ALL activity logs? This cannot be undone.');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="filter-bar filter-bar-wrap">
+            <div class="filter-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="searchString" value="@searchString" placeholder="Search logs..." class="form-control" />
+            </div>
+            <div class="filter-group">
+                <select name="actionFilter" class="form-control form-select">
+                    <option value="">All Actions</option>
+                    @foreach (var action in actionTypes)
+                    {
+                        <option value="@action" selected="@(actionFilter == action)">@action</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group">
+                <input type="date" name="dateFrom" value="@dateFrom" class="form-control" placeholder="From Date" />
+            </div>
+            <div class="filter-group">
+                <input type="date" name="dateTo" value="@dateTo" class="form-control" placeholder="To Date" />
+            </div>
+            <button type="submit" class="btn btn-outline">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            @if (!string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(actionFilter) || !string.IsNullOrEmpty(dateFrom) || !string.IsNullOrEmpty(dateTo))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-clear">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- Activity Log Table -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clock-rotate-left"></i> Activity History (@totalItems entries)</h2>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="data-table" id="activityLogTable">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model)
+                        {
+                            var actionClass = log.Action switch
+                            {
+                                "Login" => "log-action-login",
+                                "Logout" => "log-action-logout",
+                                "Register" => "log-action-register",
+                                "New Sale" => "log-action-sale",
+                                "Create Product" => "log-action-create",
+                                "Create User" => "log-action-create",
+                                "Edit Product" => "log-action-edit",
+                                "Edit User" => "log-action-edit",
+                                "Edit Order" => "log-action-edit",
+                                "Delete Product" => "log-action-delete",
+                                "Delete User" => "log-action-delete",
+                                "Change Role" => "log-action-role",
+                                "Change Password" => "log-action-security",
+                                "Update Profile" => "log-action-edit",
+                                _ => "log-action-default"
+                            };
+
+                            var actionIcon = log.Action switch
+                            {
+                                "Login" => "fa-right-to-bracket",
+                                "Logout" => "fa-right-from-bracket",
+                                "Register" => "fa-user-plus",
+                                "New Sale" => "fa-shopping-cart",
+                                "Create Product" or "Create User" => "fa-plus-circle",
+                                "Edit Product" or "Edit User" or "Edit Order" or "Update Profile" => "fa-pen",
+                                "Delete Product" or "Delete User" => "fa-trash",
+                                "Change Role" => "fa-user-shield",
+                                "Change Password" => "fa-key",
+                                _ => "fa-circle-info"
+                            };
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar-sm">
+                                            @if (log.User != null && !string.IsNullOrEmpty(log.User.ProfileImage))
+                                            {
+                                                <img src="@log.User.ProfileImage" alt="@log.User?.FullName" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-user"></i>
+                                            }
+                                        </div>
+                                        <span>@(log.User?.FullName ?? "System")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="log-action-badge @actionClass">
+                                        <i class="fas @actionIcon"></i> @log.Action
+                                    </span>
+                                </td>
+                                <td class="log-details-cell">@(log.Details ?? "—")</td>
+                                <td>
+                                    <div class="log-time">
+                                        <span>@log.Timestamp.ToString("MMM dd, yyyy")</span>
+                                        <small>@log.Timestamp.ToString("hh:mm tt")</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination">
+                    <span class="pagination-info">Page @currentPage of @totalPages (@totalItems entries)</span>
+                    <div class="pagination-links">
+                        @if (currentPage > 1)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage - 1, searchString, actionFilter, dateFrom, dateTo })" class="pagination-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        }
+                        @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                        {
+                            <a href="@Url.Action("Index", new { page = i, searchString, actionFilter, dateFrom, dateTo })"
+                               class="pagination-btn @(i == currentPage ? "active" : "")">@i</a>
+                        }
+                        @if (currentPage < totalPages)
+                        {
+                            <a href="@Url.Action("Index", new { page = currentPage + 1, searchString, actionFilter, dateFrom, dateTo })" class="pagination-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-clock-rotate-left"></i>
+                <p>No activity logs found.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportActivityLogs() {
+            var rows = document.querySelectorAll('#activityLogTable tbody tr');
+            var data = [];
+            rows.forEach(function (row) {
+                var cells = row.querySelectorAll('td');
+                data.push({
+                    'User': cells[0]?.innerText?.trim() || '',
+                    'Action': cells[1]?.innerText?.trim() || '',
+                    'Details': cells[2]?.innerText?.trim() || '',
+                    'Date & Time': cells[3]?.innerText?.trim() || ''
+                });
+            });
+            exportToExcel(data, 'Activity Logs', 'ActivityLogs.xlsx', [20, 18, 50, 25]);
+        }
+    </script>
+}

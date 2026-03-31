@@ -29,7 +29,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Models
 
         [Required(ErrorMessage = "Role is required")]
         [StringLength(20)]
-        public string Role { get; set; } = "Staff";
+        public string Role { get; set; } = "Manager";
 
         [StringLength(256)]
         [Display(Name = "Profile Image")]

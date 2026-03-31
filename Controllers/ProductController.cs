@@ -22,6 +22,12 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (HttpContext.Session.GetInt32("UserId") == null)
                 return RedirectToAction("Login", "Account");
 
+            if (HttpContext.Session.GetString("UserRole") != "Admin")
+            {
+                TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             int pageSize = 10;
             var products = _context.Products.AsQueryable();
 
@@ -138,6 +144,12 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
                 await _context.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Product added successfully!";
+
+                // Trigger system notification
+                await NotificationController.NotifyAdmins(_context,
+                    "system", "New Product Added",
+                    $"{product.ProductName} has been added to the inventory ({product.StockQuantity} units)");
+
                 return RedirectToAction(nameof(Index));
             }
 

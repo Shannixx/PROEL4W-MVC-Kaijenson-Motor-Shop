@@ -180,39 +180,39 @@
                             <p>Low Stock Alerts</p>
                             <span>Get notified when products reach minimum stock level</span>
                         </div>
-                        <button class="toggle-switch active" onclick="this.classList.toggle('active')"></button>
+                        <button class="toggle-switch" id="pref-lowStockAlerts" data-pref="lowStockAlerts" onclick="this.classList.toggle('active')"></button>
                     </div>
                     <div class="setting-row">
                         <div class="setting-row-info">
                             <p>New Order Notifications</p>
                             <span>Receive alerts for every new POS transaction completed</span>
                         </div>
-                        <button class="toggle-switch active" onclick="this.classList.toggle('active')"></button>
+                        <button class="toggle-switch" id="pref-newOrderNotifications" data-pref="newOrderNotifications" onclick="this.classList.toggle('active')"></button>
                     </div>
                     <div class="setting-row">
                         <div class="setting-row-info">
                             <p>Daily Sales Summary</p>
                             <span>Get a daily summary of total sales and transactions</span>
                         </div>
-                        <button class="toggle-switch" onclick="this.classList.toggle('active')"></button>
+                        <button class="toggle-switch" id="pref-dailySalesSummary" data-pref="dailySalesSummary" onclick="this.classList.toggle('active')"></button>
                     </div>
                     <div class="setting-row">
                         <div class="setting-row-info">
                             <p>System Updates</p>
                             <span>Receive notifications about system updates and maintenance</span>
                         </div>
-                        <button class="toggle-switch active" onclick="this.classList.toggle('active')"></button>
+                        <button class="toggle-switch" id="pref-systemUpdates" data-pref="systemUpdates" onclick="this.classList.toggle('active')"></button>
                     </div>
                     <div class="setting-row">
                         <div class="setting-row-info">
                             <p>Customer Activity</p>
                             <span>Get notified about new customer registrations</span>
                         </div>
-                        <button class="toggle-switch" onclick="this.classList.toggle('active')"></button>
+                        <button class="toggle-switch" id="pref-customerActivity" data-pref="customerActivity" onclick="this.classList.toggle('active')"></button>
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-primary" onclick="showToast('Notification preferences saved!', 'success')">
+                        <button type="button" class="btn btn-primary" onclick="saveNotificationPreferences()">
                             <i class="fas fa-save"></i> Save Preferences
                         </button>
                     </div>
@@ -328,5 +328,71 @@
                 btn.innerHTML = '<i class="fas fa-eye"></i>';
             }
         }
+
+        // Load notification preferences from DB
+        function loadNotificationPreferences() {
+            fetch('/Notification/GetPreferences')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var keys = ['lowStockAlerts', 'newOrderNotifications', 'dailySalesSummary', 'systemUpdates', 'customerActivity'];
+                    keys.forEach(function(key) {
+                        var btn = document.getElementById('pref-' + key);
+                        if (btn) {
+                            if (data[key]) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        }
+                    });
+                })
+                .catch(function(err) { console.error('Failed to load preferences', err); });
+        }
+
+        // Save notification preferences to DB
+        function saveNotificationPreferences() {
+            var data = {
+                lowStockAlerts: document.getElementById('pref-lowStockAlerts').classList.contains('active'),
+                newOrderNotifications: document.getElementById('pref-newOrderNotifications').classList.contains('active'),
+                dailySalesSummary: document.getElementById('pref-dailySalesSummary').classList.contains('active'),
+                systemUpdates: document.getElementById('pref-systemUpdates').classList.contains('active'),
+                customerActivity: document.getElementById('pref-customerActivity').classList.contains('active')
+            };
+
+            fetch('/Notification/SavePreferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.success) {
+                    showToast('Notification preferences saved!', 'success');
+                } else {
+                    showToast('Failed to save preferences', 'error');
+                }
+            })
+            .catch(function(err) {
+                showToast('Error saving preferences', 'error');
+                console.error(err);
+            });
+        }
+
+        // Load preferences when notifications tab is clicked
+        var origSwitch = switchSettingsTab;
+        switchSettingsTab = function(tabId) {
+            origSwitch.call(this, tabId);
+            if (tabId === 'notifications') {
+                loadNotificationPreferences();
+            }
+        };
+
+        // Also load on page load if notifications tab is active
+        document.addEventListener('DOMContentLoaded', function() {
+            var notifPanel = document.getElementById('panel-notifications');
+            if (notifPanel && notifPanel.classList.contains('active')) {
+                loadNotificationPreferences();
+            }
+        });
     </script>
 }

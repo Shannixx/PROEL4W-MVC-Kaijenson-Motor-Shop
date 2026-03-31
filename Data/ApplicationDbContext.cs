@@ -19,6 +19,8 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<StockTransaction> StockTransactions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationPreference> NotificationPreferences { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

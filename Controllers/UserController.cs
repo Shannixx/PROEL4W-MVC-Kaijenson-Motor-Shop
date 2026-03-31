@@ -104,7 +104,7 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
                 LastName = model.LastName,
                 Email = model.Username,
                 Password = HashingService.HashData(model.Password),
-                Role = "Staff",
+                Role = "Manager",
                 CreatedAt = DateTime.Now
             };
 
@@ -120,6 +120,11 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
                 Timestamp = DateTime.Now
             });
             await _context.SaveChangesAsync();
+
+            // Notify about new user
+            await NotificationController.NotifyAdmins(_context,
+                "system", "New User Created",
+                $"A new {user.Role} account was created for {user.FullName}");
 
             TempData["SuccessMessage"] = "User created successfully!";
             return RedirectToAction(nameof(Index));
@@ -243,6 +248,13 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
             if (id == currentUserId)
             {
                 TempData["ErrorMessage"] = "You cannot delete your own account!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Protect original admin
+            if (id == 1)
+            {
+                TempData["ErrorMessage"] = "The original admin account cannot be deleted.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -396,6 +408,68 @@ namespace PROEL4W_MVC_Kaijenson_Motor_Shop.Controllers
 
             TempData["SuccessMessage"] = "Password changed successfully!";
             return RedirectToAction("Profile");
+        }
+
+        // POST: /User/ChangeRole/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeRole(int id, string newRole)
+        {
+            if (HttpContext.Session.GetInt32("UserId") == null)
+                return RedirectToAction("Login", "Account");
+
+            if (HttpContext.Session.GetString("UserRole") != "Admin")
+            {
+                TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            // Validate role
+            if (newRole != "Admin" && newRole != "Manager")
+            {
+                TempData["ErrorMessage"] = "Invalid role specified.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            // Protect original admin from demotion
+            if (id == 1 && newRole != "Admin")
+            {
+                TempData["ErrorMessage"] = "The original admin account cannot be demoted.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Prevent changing own role
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (id == currentUserId)
+            {
+                TempData["ErrorMessage"] = "You cannot change your own role!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            string oldRole = user.Role;
+            user.Role = newRole;
+            _context.Update(user);
+            await _context.SaveChangesAsync();
+
+            _context.ActivityLogs.Add(new ActivityLog
+            {
+                UserId = currentUserId,
+                Action = "Change Role",
+                Details = $"Changed {user.FullName}'s role from {oldRole} to {newRole}",
+                Timestamp = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            // Notify about role change
+            await NotificationController.CreateNotification(_context, user.UserId,
+                "system", "Role Updated",
+                $"Your role has been changed from {oldRole} to {newRole}");
+
+            TempData["SuccessMessage"] = $"{user.FullName}'s role changed to {newRole}!";
+            return RedirectToAction(nameof(Index));
         }
     }
 }
